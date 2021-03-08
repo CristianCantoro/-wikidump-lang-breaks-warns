@@ -7,4 +7,5 @@ from . import (
     revisionlist_extractor,
     sections_counter,
     wikilink_extractor,
+    known_languages_extractor,
 )

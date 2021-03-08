@@ -94,6 +94,7 @@ def get_args():
     processors.revisionlist_extractor.configure_subparsers(subparsers)
     processors.sections_counter.configure_subparsers(subparsers)
     processors.wikilink_extractor.configure_subparsers(subparsers)
+    processors.known_languages_extractor.configure_subparsers(subparsers)
 
     parsed_args = parser.parse_args()
     if 'func' not in parsed_args:
