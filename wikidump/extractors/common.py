@@ -6,7 +6,6 @@ Identifier = NamedTuple("Identifier", [
     ('id', str),
 ])
 
-
 class CaptureResult(NamedTuple('CaptureResult', [
     ('data', T),
     ('span', 'Span'),

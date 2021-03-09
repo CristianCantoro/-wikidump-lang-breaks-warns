@@ -9,15 +9,27 @@ from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
 
-# TODO REMEMBER USER NAMESPACE = 2, define the extractor of the language and the user knowledge
-# I need also to better understand how those feautures template work, so it is important to visit: https://docs.makotemplates.org/en/latest/usage.html
-# The features and the stats should be compliant with what I've stated in the todo.md file
+# PER DOMANI, DEFINIRE LE REGEX PER L'ESTRAZIONE DELLE LINGUE E LA GENERAZIONE DEL CODICE XML, SUCCESSIVAMENTE FARE ANCHE QUALCHE TENTATIVO SU
+# I SERVER CRICCA PER OSSERVARE QUALCHE BELLA COSA, OVVIAMENTE PERIMA COSA CAPIRE COME FUZNIONANO I VARI EXTRACTORS E IL DUMPER NEL PROFONODO
+# ULTIMA COSA, FARE IL TEST APPENA FATTO PERCHÉ POTREBBE ESSERE DI FONDAMENTALE AIUTO
 
-# TODO define which feature I want to be extracted from the user pages
+# TODO insert an if-else in mako template to print out n instead of 6 if the language knowledge is mother tongue
 features_template = '''
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://github.com/youtux/wikidump/blob/master/schemas/wikidump-0.1-mediawiki-0.10.xsd" version="0.10" xml:lang="en">
-    % for page in pages:
-    <page>
+    <siteinfo>
+        <sitename>${siteinfo.name | x}</sitename>
+        <dbname>${siteinfo.dbname | x}</dbname>
+        <base>${siteinfo.base | x}</base>
+        <generator>${generator | x}</generator>
+        <case>${siteinfo.case | x}</case>
+        <namespaces>
+            % for namespace in siteinfo.namespaces:
+            <namespace key="${namespace.id | x}" case="${namespace.case | x}">${namespace.name | x}</namespace>
+            % endfor
+        </namespaces>
+    </siteinfo>
+    % for page in pages:  # basically a for in xml
+    <user>
         <title>${page.title | x}</title>
         <ns>${page.namespace | x}</ns>
         <id>${page.id | x}</id>
@@ -25,10 +37,20 @@ features_template = '''
         <revision>
             <id>${revision.id | x}</id>
             <user>${revision.user | x}</user>
+            <user_id>${revision.user_id | x}</user_id>
+            <user_name>${revision.user_name | x}</user_name>
             <text xml:space="preserve">${revision.text | x}</text>
+            <languages>
+                % for l in revision.languages:
+                <knowledge>
+                    <lang>${l.lang | x}</lang>
+                    <level>${l.level | x}</level>
+                </knowledge>
+                % endfor
+            </languages>
         </revision>
         % endfor
-    </page>
+    </user>
     % endfor
 </mediawiki>
 '''
@@ -42,12 +64,22 @@ stats_template = '''
         <pages_analyzed>${stats['performance']['pages_analyzed']}</pages_analyzed>
     </performance>
     <users>
-        # TODO define
+        <total>${stats['users']['total']| x}</total>
+        <languages>
+            % for l in stats['users']['languages']:
+            <lang>${l | x}</lang>
+            % for i in range(len(stats['users']['languages'][l]['knowledge'])):
+            <knowledge>
+                <level>${i| x}</level>
+                <occurences>${stats['users']['languages'][l]['knowledge'][i]| x}<occurences>
+            </knowledge>
+            % endfor
+            % endfor
+        </languages>
     </users>
 </stats>
 '''
 
-# TODO define
 Page = collections.namedtuple('Page', [
     'id',
     'namespace',
@@ -55,11 +87,13 @@ Page = collections.namedtuple('Page', [
     'revisions',
 ])
 
-# TODO define
 Revision = collections.namedtuple('Revision', [
     'id',
     'user',
-    'text',     # NOTE: only for now, here are stored all the info in the user's page, so there is the Babel tag we need
+    'user_id',
+    'user_name',
+    'text',
+    'languages',
 ])
 
 def extract_revisions(
@@ -71,16 +105,40 @@ def extract_revisions(
     for mw_revision in revisions:
         utils.dot()
 
+        is_last_revision = not utils.has_next(revisions)
+        if only_last_revision and not is_last_revision:
+            continue
+
         text = utils.remove_comments(mw_revision.text or '')
 
-        # languages = (lang for lang, _ in extractors.languages.language_knowledge(text))
+        # It extracts a list of LanguageLevel instances, composed of (languages and it's level)
+        languages = [lang for lang, _ in extractors.languages.language_knowledge(text)]
 
-        yield Revision(
-            id=mw_revision.id,
-            user=mw_revision.user,
-            text=text,
-        )
+        # Update stats
+        for l in languages:
+            if l.lang in stats['users']['languages']:
+                if not 'knowledge' in stats['users']['languages']:
+                    stats['users']['languages'][l.lang]['knowledge'] = [0] * (extractors.languages.LanguageLevel.MOTHER_TONGUE_LEVEL + 1)
+                    stats['users']['languages'][l.lang]['knowledge'][l.level] = 0
+                stats['users']['languages'][l.lang]['knowledge'][l.level] += 1
+            else:
+                stats['users']['languages'][l.lang] = dict()
+                stats['users']['languages'][l.lang]['knowledge'] = [0] * (extractors.languages.LanguageLevel.MOTHER_TONGUE_LEVEL + 1)
+                stats['users']['languages'][l.lang]['knowledge'][l.level] = 1
 
+        # Return only the revision's with at least one language
+        if languages:
+            print('At least a language:')
+            print(len(languages))
+            yield Revision(
+                id=mw_revision.id,
+                user=mw_revision.user,
+                user_id=mw_revision.user.id,
+                user_name=mw_revision.user.text,
+                text=text,
+                languages=languages
+            )
+        
         stats['performance']['revisions_analyzed'] += 1
 
 
@@ -89,8 +147,6 @@ def extract_pages(
         stats: Mapping,
         only_last_revision: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
-    # break after 100 users, this is only for testing
-    break_me_counter = 100
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -106,18 +162,16 @@ def extract_pages(
             only_last_revision=only_last_revision,
         )
 
-        yield Page(
-            id=mw_page.id,
-            namespace=mw_page.namespace,
-            title=mw_page.title,
-            revisions=revisions_generator,
-        )
+        # TODO write a page only if there's at least a revision, what should be the right behaviour?
+        if revisions_generator:
+            yield Page(
+                id=mw_page.id,
+                namespace=mw_page.namespace,
+                title=mw_page.title,
+                revisions=revisions_generator,
+            )
+            stats['users']['total'] += 1
         stats['performance']['pages_analyzed'] += 1
-
-        break_me_counter -= 1
-
-        if(break_me_counter == 0):
-            break
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
@@ -139,7 +193,7 @@ def main(
         stats_output_h,
         args) -> None:
     """Main function that parses the arguments and writes the output."""
-    # to modify
+
     stats = {
         'performance': {
             'start_time': None,
@@ -147,9 +201,9 @@ def main(
             'revisions_analyzed': 0,
             'pages_analyzed': 0,
         },
-        'section_names': {
-            'global': collections.Counter(),
-            'last_revision': collections.Counter(),
+        'users': {
+            'total': 0,
+            'languages': dict(),
         },
     }
 

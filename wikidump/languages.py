@@ -21,6 +21,12 @@ citation = {
     'en': {'Citation', 'cite', 'vcite'},
 }
 
+# TODO load from a json file or something
+
+iso639_languages = {
+
+}
+
 """
 What I mean for:
 * References: a section containing footnotes for works cited in the text.
