@@ -29,7 +29,7 @@ class LanguageLevel:
 
     """The pair language name and level of knowledge"""
     def __init__(self, lang: str, level: int):
-        self.lang = lang
+        self.lang = lang.strip().lower()
         self.level = level
 
     def __lt__(self, other):

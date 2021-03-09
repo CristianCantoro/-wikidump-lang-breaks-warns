@@ -67,13 +67,15 @@ stats_template = '''
         <total>${stats['users']['total']| x}</total>
         <languages>
             % for l in stats['users']['languages']:
-            <lang>${l | x}</lang>
-            % for i in range(len(stats['users']['languages'][l]['knowledge'])):
-            <knowledge>
-                <level>${i| x}</level>
-                <occurences>${stats['users']['languages'][l]['knowledge'][i]| x}<occurences>
-            </knowledge>
-            % endfor
+            <lang>
+                <name>${l | x}</name>
+                % for i in range(len(stats['users']['languages'][l]['knowledge'])):
+                <knowledge>
+                    <level>${i| x}</level>
+                    <occurences>${stats['users']['languages'][l]['knowledge'][i]| x}<occurences>
+                </knowledge>
+                % endfor
+            </lang>
             % endfor
         </languages>
     </users>
@@ -92,7 +94,7 @@ Revision = collections.namedtuple('Revision', [
     'user',
     'user_id',
     'user_name',
-    'text',
+    #'text',
     'languages',
 ])
 
@@ -117,9 +119,6 @@ def extract_revisions(
         # Update stats
         for l in languages:
             if l.lang in stats['users']['languages']:
-                if not 'knowledge' in stats['users']['languages']:
-                    stats['users']['languages'][l.lang]['knowledge'] = [0] * (extractors.languages.LanguageLevel.MOTHER_TONGUE_LEVEL + 1)
-                    stats['users']['languages'][l.lang]['knowledge'][l.level] = 0
                 stats['users']['languages'][l.lang]['knowledge'][l.level] += 1
             else:
                 stats['users']['languages'][l.lang] = dict()
@@ -128,8 +127,6 @@ def extract_revisions(
 
         # Return only the revision's with at least one language
         if languages:
-            print('At least a language:')
-            print(len(languages))
             yield Revision(
                 id=mw_revision.id,
                 user=mw_revision.user,
@@ -147,6 +144,9 @@ def extract_pages(
         stats: Mapping,
         only_last_revision: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
+    # break after 100 users, this is only for testing
+    break_me_counter = 100
+
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -163,7 +163,13 @@ def extract_pages(
         )
 
         # TODO write a page only if there's at least a revision, what should be the right behaviour?
-        if revisions_generator:
+        print(type(revisions_generator))
+        # try:
+        #   next_item = next(it)
+        # except StopIteration:
+        #
+        #
+        if utils.has_next(more_itertools.peekable(revisions_generator)):
             yield Page(
                 id=mw_page.id,
                 namespace=mw_page.namespace,
@@ -172,6 +178,12 @@ def extract_pages(
             )
             stats['users']['total'] += 1
         stats['performance']['pages_analyzed'] += 1
+
+        break_me_counter -= 1
+
+        if(break_me_counter == 0):
+            break
+
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""

@@ -14,6 +14,7 @@ from typing import IO, Optional, Union
 
 from . import processors, utils
 
+# TODO: --output-compression must be at the beginning of the file if the files argument is a list, must be fixed
 
 def open_xml_file(path: Union[str, IO]):
     """Open an xml file, decompressing it if necessary."""
@@ -107,7 +108,7 @@ def get_args():
 def main():
     """Main function."""
     args = get_args()
-    
+
     if not args.output_dir_path.exists():
         args.output_dir_path.mkdir(parents=True)
 
