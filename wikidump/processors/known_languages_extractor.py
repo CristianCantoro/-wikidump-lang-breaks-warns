@@ -9,10 +9,6 @@ from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
 
-# PER DOMANI, DEFINIRE LE REGEX PER L'ESTRAZIONE DELLE LINGUE E LA GENERAZIONE DEL CODICE XML, SUCCESSIVAMENTE FARE ANCHE QUALCHE TENTATIVO SU
-# I SERVER CRICCA PER OSSERVARE QUALCHE BELLA COSA, OVVIAMENTE PERIMA COSA CAPIRE COME FUZNIONANO I VARI EXTRACTORS E IL DUMPER NEL PROFONODO
-# ULTIMA COSA, FARE IL TEST APPENA FATTO PERCHÉ POTREBBE ESSERE DI FONDAMENTALE AIUTO
-
 # TODO insert an if-else in mako template to print out n instead of 6 if the language knowledge is mother tongue
 features_template = '''
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://github.com/youtux/wikidump/blob/master/schemas/wikidump-0.1-mediawiki-0.10.xsd" version="0.10" xml:lang="en">
@@ -144,9 +140,6 @@ def extract_pages(
         stats: Mapping,
         only_last_revision: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
-    # break after 100 users, this is only for testing
-    break_me_counter = 100
-
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -162,13 +155,6 @@ def extract_pages(
             only_last_revision=only_last_revision,
         )
 
-        # TODO write a page only if there's at least a revision, what should be the right behaviour?
-        print(type(revisions_generator))
-        # try:
-        #   next_item = next(it)
-        # except StopIteration:
-        #
-        #
         if utils.has_next(more_itertools.peekable(revisions_generator)):
             yield Page(
                 id=mw_page.id,
@@ -178,12 +164,6 @@ def extract_pages(
             )
             stats['users']['total'] += 1
         stats['performance']['pages_analyzed'] += 1
-
-        break_me_counter -= 1
-
-        if(break_me_counter == 0):
-            break
-
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
