@@ -72,3 +72,9 @@ todo.md
 
 # python venv
 venv
+
+# iso_lang json file
+iso_langs.json
+
+# parse error file
+error.txt

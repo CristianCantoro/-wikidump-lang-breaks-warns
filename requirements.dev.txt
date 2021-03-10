@@ -34,3 +34,4 @@ simplegeneric==0.8.1
 traitlets==4.3.2
 typing==3.5.0.1
 wcwidth==0.1.7
+lxml==4.6.2

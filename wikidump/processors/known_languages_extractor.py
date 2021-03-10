@@ -34,8 +34,8 @@ features_template = '''
         <revision>
             <id>${revision.id | x}</id>
             <user>${revision.user | x}</user>
-            <user_id>${revision.user_id | x}</user_id>
-            <user_name>${revision.user_name | x}</user_name>
+            <user_id>${revision.user.id | x}</user_id>
+            <user_name>${revision.user.text | x}</user_name>
             <timestamp>${revision.timestamp | x}</timestamp>
             <text xml:space="preserve">${revision.text | x}</text>
             <languages>
@@ -43,9 +43,9 @@ features_template = '''
                 <knowledge>
                     <lang>${l.lang | x}</lang>
                     % if l.level == 6: 
-                        <level>N</level>
+                    <level>N</level>
                     % else:
-                        <level>${l.level | x}</level>
+                    <level>${l.level | x}</level>
                     % endif
                 </knowledge>
                 % endfor
@@ -94,8 +94,6 @@ Page = collections.namedtuple('Page', [
 Revision = collections.namedtuple('Revision', [
     'id',
     'user',
-    'user_id',
-    'user_name',
     'text',          # only for debug purpose
     'timestamp',
     'languages',
@@ -113,6 +111,7 @@ def extract_revisions(
     for mw_revision in revisions:
         utils.dot()
 
+        # only last revision handler
         is_last_revision = not utils.has_next(revisions)
         if only_last_revision and not is_last_revision:
             continue
@@ -131,28 +130,21 @@ def extract_revisions(
                 stats['users']['languages'][l.lang]['knowledge'] = [0] * (extractors.languages.LanguageLevel.MOTHER_TONGUE_LEVEL + 1)
                 stats['users']['languages'][l.lang]['knowledge'][l.level] = 1
 
-        # Return only the revision's with at least one language
+        # Build the revision
+        rev = Revision(
+            id=mw_revision.id,
+            user=mw_revision.user,
+            text=text,
+            timestamp=mw_revision.timestamp.to_json(),
+            languages=languages
+        )
+
+        # Return only the revisions with at least one language if the flag's active
         if only_revisions_with_languages:
             if languages:
-                yield Revision(
-                    id=mw_revision.id,
-                    user=mw_revision.user,
-                    user_id=mw_revision.user.id,
-                    user_name=mw_revision.user.text,
-                    text=text,
-                    timestamp=mw_revision.timestamp.to_json(),
-                    languages=languages
-                )
+                yield rev
         else:
-            yield Revision(
-                id=mw_revision.id,
-                user=mw_revision.user,
-                user_id=mw_revision.user.id,
-                user_name=mw_revision.user.text,
-                text=text,
-                timestamp=mw_revision.timestamp.to_json(),
-                languages=languages
-            )
+            yield rev
         stats['performance']['revisions_analyzed'] += 1
 
 
@@ -164,7 +156,7 @@ def extract_pages(
         only_revisions_with_languages: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
 
-    # break_me_counter = 100
+    #break_me_counter = 100
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -181,22 +173,20 @@ def extract_pages(
             only_revisions_with_languages=only_revisions_with_languages,
         )
 
+        page = Page(
+            id=mw_page.id,
+            namespace=mw_page.namespace,
+            title=mw_page.title,
+            revisions=revisions_generator,
+        )
+
+        # Return only the pages with at least one language if the flag's active
         if only_pages_with_languages:
             if utils.has_next(more_itertools.peekable(revisions_generator)):
-                yield Page(
-                    id=mw_page.id,
-                    namespace=mw_page.namespace,
-                    title=mw_page.title,
-                    revisions=revisions_generator,
-                )
+                yield page
                 stats['users']['total'] += 1
         else:
-            yield Page(
-                id=mw_page.id,
-                namespace=mw_page.namespace,
-                title=mw_page.title,
-                revisions=revisions_generator,
-            )
+            yield page
             stats['users']['total'] += 1
         stats['performance']['pages_analyzed'] += 1
 

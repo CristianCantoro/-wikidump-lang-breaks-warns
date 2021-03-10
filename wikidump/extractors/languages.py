@@ -15,12 +15,11 @@ There are also some alternatives to the Babel template:
 
 import regex as re
 from typing import Iterator
-
+from .. import languages
 from .common import CaptureResult, Identifier, Span
 
 class LanguageLevel:
     """Class which stores the language and the level associatecd with the user"""
-
 
     """Map n value (mother tongue language level) into 6 (greater than each possibile value into Babel teamplate)"""
     MOTHER_TONGUE_LEVEL = 6
@@ -41,8 +40,10 @@ class LanguageLevel:
     def __repr__(self):
         return 'lang: {}; level: {}'.format(self.lang, self.level)
 
+# exports 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
+# REGEXs FOR https://en.wikipedia.org/wiki/Wikipedia:Babel
 babel_standard_pattern = r'{{(?:\s|\_)*Babel(?:\s|\_)*(?:(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)+)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO test and clean
 babel_extension_template = r'{{\s*#babel:(?:(?P<first_lang>((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3}))(\-(?:0|1|2|3|4|5|n)|)|)|(?:\s|\_)*(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)*)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO check if this can be incorporate into the first
 user_template_format = r'{{(?:\s|\_)*User(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|))}}'
@@ -68,26 +69,32 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                 # Need to parse the languages
                 parsed_languages = list(filter(None, raw_langs.strip().split('|'))) # retrieve the languages I am interested in for the user
                 for langs in parsed_languages:
-                    # sample templates it-4
+                    # if the level of knowledge is specified
                     l = langs.split('-', 1)
                     if len(l) > 1:
                         if l[1].lower() == 'n':
                             l[1] = LanguageLevel.MOTHER_TONGUE_LEVEL
-                        lang_knowedge = LanguageLevel(l[0], int(l[1]))
+                        level = int(l[1])
                     else:
-                        lang_knowedge = LanguageLevel(l[0], LanguageLevel.MOTHER_TONGUE_LEVEL)
+                        level = LanguageLevel.MOTHER_TONGUE_LEVEL
                     
-                    # TODO filter the match with some languages retrieved from https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-
-                    yield CaptureResult(
-                        data=(lang_knowedge), span=(match.start(), match.end())
-                    )
+                    if l[0] in languages.iso639_languages:
+                        lang_knowedge = LanguageLevel(languages.iso639_languages[l[0]], level)
+                        yield CaptureResult(
+                            data=(lang_knowedge), span=(match.start(), match.end())
+                        )
+                    else:
+                        write_error(pattern, match) # Language not recognized
             else:
                 pass  # TODO what to do if there isn't any match with lang group
 
-def write_error(pattern re.Pattern, match: Iterator[re.Match]) -> None:
+def write_error_language_not_recognized(lang: str) -> None:
     with open('error.txt', 'a+') as f:
-        f.write('patter who failed {} match {}\n'.format(pattern, match))
+        f.write('{} not recognized\n'.format(lang))
+
+def write_error(pattern: re.Pattern, match: Iterator[re.Match]) -> None:
+    with open('error.txt', 'a+') as f:
+        f.write('pattern who failed {} match {}\n'.format(pattern, match))
 
 def check_language_presence(match: Iterator[re.Match]) -> bool:
     """Checks if some group is present inside the """
