@@ -18,8 +18,6 @@ from typing import Iterator
 
 from .common import CaptureResult, Identifier, Span
 
-# TODO consider if the level can be converted as a string
-
 class LanguageLevel:
     """Class which stores the language and the level associatecd with the user"""
 
@@ -45,11 +43,11 @@ class LanguageLevel:
 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
-babel_standard_pattern = r'{{\s*Babel\s*(?P<lang>(\|(\s*(?:it|en|ca|es)(\-(?:0|1|2|3|4|5|n)|)|)\s*)+)}}'
-babel_extension_template = r'{{\s*#babel:(?P<first_lang>(\s*(?:it|en|ca|es))(\-(?:0|1|2|3|4|5|n)|)|)\s*(?P<lang>(\|(\s*(?:it|en|ca|es)(\-(?:0|1|2|3|4|5|n)|)|)\s*)*)}}'
-user_template_format = r'{{\s*User\s*(?P<lang>(?:it|en|ca|es)(\-(?:0|1|2|3|4|5|n)|))}}'
-babel_n_template = r'{{\s*Babel\-\d\s*(?P<lang>(\|(\s*(?:it|en|ca|es)(\-(?:0|1|2|3|4|5|n)|)|)\s*)+)}}' # TODO, there are many varaints, this is the most used one at least in the catalan wiki
-userboxes_template = r'' # TODO define
+babel_standard_pattern = r'{{(?:\s|\_)*Babel(?:\s|\_)*(?:(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)+)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO test and clean
+babel_extension_template = r'{{\s*#babel:(?:(?P<first_lang>((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3}))(\-(?:0|1|2|3|4|5|n)|)|)|(?:\s|\_)*(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)*)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO check if this can be incorporate into the first
+user_template_format = r'{{(?:\s|\_)*User(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|))}}'
+babel_n_template = r'{{(?:\s|\_)*Babel\-\d(?:\s|\_)*(?:(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)+)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO, there are many varaints, this is the most used one at least in the catalan wiki
+userboxes_template = r'' # TODO define, it seemed to be contained in the user_template format
 
 KNOWN_LANGUAGES_REs = [
     re.compile(babel_standard_pattern, re.I | re.U),
@@ -62,11 +60,11 @@ KNOWN_LANGUAGES_REs = [
 def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
     for pattern in KNOWN_LANGUAGES_REs:
         for match in pattern.finditer(text): # returns an iterator of match object
-            if match.group('lang') or match.group('first_lang'): # extract a named group called lang (basically it contains a single language if it's the user's mother tongue, otherwise lang-level)
-                try:
-                    raw_langs = match.group('first_lang')
-                except IndexError:
-                    raw_langs = match.group('lang')
+            if check_language_presence(match): # extract a named group called lang (basically it contains a single language if it's the user's mother tongue, otherwise lang-level)
+                raw_langs = retrieve_group(match)
+                if not raw_langs:
+                    write_error(pattern, match)
+                    return
                 # Need to parse the languages
                 parsed_languages = list(filter(None, raw_langs.strip().split('|'))) # retrieve the languages I am interested in for the user
                 for langs in parsed_languages:
@@ -79,9 +77,30 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                     else:
                         lang_knowedge = LanguageLevel(l[0], LanguageLevel.MOTHER_TONGUE_LEVEL)
                     
-                    # return the match
+                    # TODO filter the match with some languages retrieved from https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+
                     yield CaptureResult(
                         data=(lang_knowedge), span=(match.start(), match.end())
                     )
             else:
                 pass  # TODO what to do if there isn't any match with lang group
+
+def write_error(pattern re.Pattern, match: Iterator[re.Match]) -> None:
+    with open('error.txt', 'a+') as f:
+        f.write('patter who failed {} match {}\n'.format(pattern, match))
+
+def check_language_presence(match: Iterator[re.Match]) -> bool:
+    """Checks if some group is present inside the """
+    try:
+        match.group('lang') or match.group('first_lang')
+        return True
+    except IndexError:
+        return False
+
+def retrieve_group(match: Iterator[re.Match]) -> str:
+    """Retrieve the right group according to the position of the language"""
+    try:
+        raw_langs = match.group('first_lang')
+    except IndexError:
+        raw_langs = match.group('lang')
+    return raw_langs

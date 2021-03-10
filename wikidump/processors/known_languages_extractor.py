@@ -5,13 +5,14 @@ import datetime
 
 import more_itertools
 import mwxml
+import jsonable
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
 
-# TODO insert an if-else in mako template to print out n instead of 6 if the language knowledge is mother tongue
+# TODO change the check for mother tongue level
 features_template = '''
-<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://github.com/youtux/wikidump/blob/master/schemas/wikidump-0.1-mediawiki-0.10.xsd" version="0.10" xml:lang="en">
+<mediawiki xml:lang="en">
     <siteinfo>
         <sitename>${siteinfo.name | x}</sitename>
         <dbname>${siteinfo.dbname | x}</dbname>
@@ -35,12 +36,17 @@ features_template = '''
             <user>${revision.user | x}</user>
             <user_id>${revision.user_id | x}</user_id>
             <user_name>${revision.user_name | x}</user_name>
+            <timestamp>${revision.timestamp | x}</timestamp>
             <text xml:space="preserve">${revision.text | x}</text>
             <languages>
                 % for l in revision.languages:
                 <knowledge>
                     <lang>${l.lang | x}</lang>
-                    <level>${l.level | x}</level>
+                    % if l.level == 6: 
+                        <level>N</level>
+                    % else:
+                        <level>${l.level | x}</level>
+                    % endif
                 </knowledge>
                 % endfor
             </languages>
@@ -90,16 +96,20 @@ Revision = collections.namedtuple('Revision', [
     'user',
     'user_id',
     'user_name',
-    #'text',
+    'text',          # only for debug purpose
+    'timestamp',
     'languages',
 ])
 
 def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
-        only_last_revision: bool) -> Iterator[Revision]:
+        only_last_revision: bool,
+        only_revisions_with_languages: bool) -> Iterator[Revision]:
+    
     """Extract the known languages within a user's page."""
     revisions = more_itertools.peekable(mw_page)
+    
     for mw_revision in revisions:
         utils.dot()
 
@@ -122,24 +132,39 @@ def extract_revisions(
                 stats['users']['languages'][l.lang]['knowledge'][l.level] = 1
 
         # Return only the revision's with at least one language
-        if languages:
+        if only_revisions_with_languages:
+            if languages:
+                yield Revision(
+                    id=mw_revision.id,
+                    user=mw_revision.user,
+                    user_id=mw_revision.user.id,
+                    user_name=mw_revision.user.text,
+                    text=text,
+                    timestamp=mw_revision.timestamp.to_json(),
+                    languages=languages
+                )
+        else:
             yield Revision(
                 id=mw_revision.id,
                 user=mw_revision.user,
                 user_id=mw_revision.user.id,
                 user_name=mw_revision.user.text,
                 text=text,
+                timestamp=mw_revision.timestamp.to_json(),
                 languages=languages
             )
-        
         stats['performance']['revisions_analyzed'] += 1
 
 
 def extract_pages(
         dump: Iterable[mwxml.Page],
         stats: Mapping,
-        only_last_revision: bool) -> Iterator[Page]:
+        only_last_revision: bool,
+        only_pages_with_languages: bool,
+        only_revisions_with_languages: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
+
+    break_me_counter = 100
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -153,9 +178,19 @@ def extract_pages(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
+            only_revisions_with_languages=only_revisions_with_languages,
         )
 
-        if utils.has_next(more_itertools.peekable(revisions_generator)):
+        if only_pages_with_languages:
+            if utils.has_next(more_itertools.peekable(revisions_generator)):
+                yield Page(
+                    id=mw_page.id,
+                    namespace=mw_page.namespace,
+                    title=mw_page.title,
+                    revisions=revisions_generator,
+                )
+                stats['users']['total'] += 1
+        else:
             yield Page(
                 id=mw_page.id,
                 namespace=mw_page.namespace,
@@ -165,11 +200,26 @@ def extract_pages(
             stats['users']['total'] += 1
         stats['performance']['pages_analyzed'] += 1
 
+        break_me_counter -= 1
+
+        if(break_me_counter == 0):
+            break
+
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
         'extract-known-languages',
         help='Extract the languages known by the users',
+    )
+    parser.add_argument(
+        '--only-pages-with-languages',
+        action='store_true',
+        help='Consider only the pages with at least a revision which contains a known language.',
+    )
+    parser.add_argument(
+        '--only-revisions-with-languages',
+        action='store_true',
+        help='Consider only the revisions with contain at a known language.',
     )
     parser.add_argument(
         '--only-last-revision',
@@ -203,6 +253,8 @@ def main(
         dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
+        only_pages_with_languages=args.only_pages_with_languages,
+        only_revisions_with_languages=args.only_revisions_with_languages,
     )
 
     with features_output_h:

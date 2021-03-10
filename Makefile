@@ -21,6 +21,7 @@ PROGRAM := wikidump
 OUTPUT_FOLDER := output
 PROGRAM_FLAGS := --output-compression gzip
 FUNCTION_TO_RUN := extract-known-languages
+FUNCTION_SUB_COMMANDS := --only-pages-with-languages --only-revisions-with-languages
 PYTHON := python3
 PIP := pip
 DUMP_EXT := .7z
@@ -60,76 +61,76 @@ install-dev:
 	@$(PIP) install -r requirements.dev.txt
 	@$(ECHO) '$(GREEN)Done$(NONE)'
 
-run-ca:
+run-ca:  # BROKEN IN SOME WAY, DON'T KNOW HOW
 	@$(ECHO) '$(BLUE)Running cawiki datasets..$(NONE)'
 	@$(eval FILES=$(wildcard $(DUMP_FOLDER)/$(CAWIKI)/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM) $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-it:
 	@$(ECHO) '$(BLUE)Running itwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(ITWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-de:
 	@$(ECHO) '$(BLUE)Running dewiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(DEWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-es:
 	@$(ECHO) '$(BLUE)Running eswiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(ESWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-fr:
 	@$(ECHO) '$(BLUE)Running frwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(FRWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-ja:
 	@$(ECHO) '$(BLUE)Running jawiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(JAWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-nl:
 	@$(ECHO) '$(BLUE)Running nlwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(NLWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-pl:
 	@$(ECHO) '$(BLUE)Running plwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(PLWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-pt:
 	@$(ECHO) '$(BLUE)Running ptwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(PTWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-ru:
 	@$(ECHO) '$(BLUE)Running ruwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(RUWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-sv:
 	@$(ECHO) '$(BLUE)Running svwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(SVWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-zh:
 	@$(ECHO) '$(BLUE)Running zhwiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(ZHWIKI)/**/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN)
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-all:
