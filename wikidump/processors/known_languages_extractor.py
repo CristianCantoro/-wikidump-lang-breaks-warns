@@ -109,7 +109,7 @@ def extract_revisions(
     
     """Extract the known languages within a user's page."""
     revisions = more_itertools.peekable(mw_page)
-    
+
     for mw_revision in revisions:
         utils.dot()
 
@@ -164,7 +164,7 @@ def extract_pages(
         only_revisions_with_languages: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
 
-    break_me_counter = 100
+    # break_me_counter = 100
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -200,10 +200,10 @@ def extract_pages(
             stats['users']['total'] += 1
         stats['performance']['pages_analyzed'] += 1
 
-        break_me_counter -= 1
+        #break_me_counter -= 1
 
-        if(break_me_counter == 0):
-            break
+        #if(break_me_counter == 0):
+        #    break
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
