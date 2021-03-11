@@ -5,9 +5,12 @@ import datetime
 import json
 import more_itertools
 import mwxml
+import datetime
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
+
+# GENERATORS CONSUMES
 
 class Page:
     def __init__(self, id, namespace, title, revisions):
@@ -27,46 +30,25 @@ class Page:
             obj['revisions'].append(rev.to_dict())
         return obj
 
-    def discard_me(self):
-        self.discard = True
-
-    def __repr__(self):
-        s = '{}, {}, {}, {}, {}'.format(self.id, self.namespace, self.title, self.revisions, utils.has_next(more_itertools.peekable(self.revisions)))
-        for i in self.revisions:
-            if not i.discard:
-                s += ', revs: [{}]'.format(i)
-        return s
-
 
 class Revision:
-    def __init__(self, id, user, text, timestamp, languages):
+    def __init__(self, id, user, timestamp, languages):
         self.id = id
         self.user = user
-        self.text = text
         self.timestamp = timestamp
         self.languages = languages
         self.discard = False
-
-    def discard_me(self):
-        self.discard = True
 
     def to_dict(self):
         obj = dict()
         obj['id'] = self.id
         obj['user_id'] = self.user.id
         obj['user_name'] = self.user.text
-        obj['text'] = self.text
         obj['timestamp'] = self.timestamp
         obj['languages'] = list()
         for lang in self.languages:
             obj['languages'].append(lang.to_dict())
         return obj
-    
-    def __repr__(self):
-        s = '{}, {}, {}, {}'.format(self.id, self.user.id, self.user.text, self.timestamp)
-        for i in self.languages:
-            s += ',[ {} {} ]'.format(i.lang, i.level)
-        return s
 
 def extract_revisions(
         mw_page: mwxml.Page,
@@ -77,13 +59,13 @@ def extract_revisions(
     """Extract the known languages within a user's page."""
     revisions = more_itertools.peekable(mw_page)
 
+    oldest_revision = None
+
     for mw_revision in revisions:
         utils.dot()
 
-        # only last revision handler
+        # check if it's last revision
         is_last_revision = not utils.has_next(revisions)
-        if only_last_revision and not is_last_revision:
-            continue
 
         text = utils.remove_comments(mw_revision.text or '')
 
@@ -103,18 +85,40 @@ def extract_revisions(
         rev = Revision(
             id=mw_revision.id,
             user=mw_revision.user,
-            text=text,
             timestamp=mw_revision.timestamp.to_json(),
             languages=languages
         )
 
+        # Check the oldest revisions possible
+        if not oldest_revision:
+            oldest_revision = rev
+        else:
+            oldest_date = datetime.datetime.fromisoformat(oldest_revision.timestamp.replace('Z', '+00:00'))
+            new_date = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
+
+            # I am interested in only the ones with at least a language
+            if only_revisions_with_languages:
+                if not languages:
+                    new_date = oldest_date
+
+            if oldest_date < new_date:
+                oldest_revision = rev
+
         # Return only the revisions with at least one language if the flag's active
         stats['performance']['revisions_analyzed'] += 1
-        if only_revisions_with_languages:
-            if not languages:
-                rev.discard_me()
-
-        yield rev
+        
+        # Yield when requested
+        if only_last_revision:
+            if only_revisions_with_languages:
+                if oldest_revision.languages and is_last_revision:
+                    yield oldest_revision
+            elif is_last_revision:
+                yield oldest_revision
+        elif only_revisions_with_languages:
+            if languages:
+                yield rev
+        else:
+            yield rev
 
 
 def extract_pages(
@@ -140,26 +144,27 @@ def extract_pages(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
-            only_revisions_with_languages=only_revisions_with_languages,
+            only_revisions_with_languages=only_revisions_with_languages
         )
 
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
-            revisions=revisions_generator
+            revisions=list(revisions_generator),
         )
 
         # Return only the pages with at least one language if the flag's active
         if only_pages_with_languages:
-            if not utils.has_next(more_itertools.peekable(revisions_generator)):
-                page.discard_me()
-            else:
+            if len(page.revisions) > 0:
                 stats['users']['total'] += 1
+                yield page
         else:
             stats['users']['total'] += 1
+            yield page
 
-        yield page
+        if mw_page.title == 'Llull':
+            break
 
         stats['performance']['pages_analyzed'] += 1
 
@@ -219,7 +224,7 @@ def main(
         stats=stats,
         only_last_revision=args.only_last_revision,
         only_pages_with_languages=args.only_pages_with_languages,
-        only_revisions_with_languages=args.only_revisions_with_languages,
+        only_revisions_with_languages=args.only_revisions_with_languages
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()
