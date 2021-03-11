@@ -15,6 +15,7 @@ class Page:
         self.namespace = namespace
         self.title = title
         self.revisions = revisions
+        self.discard = False
 
     def to_dict(self):
         obj = dict()
@@ -26,10 +27,14 @@ class Page:
             obj['revisions'].append(rev.to_dict())
         return obj
 
+    def discard_me(self):
+        self.discard = True
+
     def __repr__(self):
         s = '{}, {}, {}, {}, {}'.format(self.id, self.namespace, self.title, self.revisions, utils.has_next(more_itertools.peekable(self.revisions)))
         for i in self.revisions:
-            s += ', revs: [{}]'.format(i)
+            if not i.discard:
+                s += ', revs: [{}]'.format(i)
         return s
 
 
@@ -40,6 +45,10 @@ class Revision:
         self.text = text
         self.timestamp = timestamp
         self.languages = languages
+        self.discard = False
+
+    def discard_me(self):
+        self.discard = True
 
     def to_dict(self):
         obj = dict()
@@ -102,10 +111,10 @@ def extract_revisions(
         # Return only the revisions with at least one language if the flag's active
         stats['performance']['revisions_analyzed'] += 1
         if only_revisions_with_languages:
-            if languages:
-                yield rev
-        else:
-            yield rev
+            if not languages:
+                rev.discard_me()
+
+        yield rev
 
 
 def extract_pages(
@@ -138,17 +147,19 @@ def extract_pages(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
-            revisions=list(revisions_generator)
+            revisions=revisions_generator
         )
 
         # Return only the pages with at least one language if the flag's active
         if only_pages_with_languages:
-            if utils.has_next(more_itertools.peekable(revisions_generator)):
-                yield page
+            if not utils.has_next(more_itertools.peekable(revisions_generator)):
+                page.discard_me()
+            else:
                 stats['users']['total'] += 1
         else:
-            yield page
             stats['users']['total'] += 1
+
+        yield page
 
         stats['performance']['pages_analyzed'] += 1
 
@@ -214,8 +225,9 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
-        features_output_h.write("\n")
+        if not obj.discard:
+            features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+            features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
     stats_output_h.write(json.dumps(stats, indent=4, default=str))
