@@ -1,11 +1,4 @@
 """Extractor for "languages" known by Wikipedians in their personal page https://en.wikipedia.org/wiki/Wikipedia:Babel. 
-
-Common example of Wikipedia:Babel template: {{Babel|zh|es-4|ru-2}}
-
-Please not there is also this extension of Babel that should be considered: https://www.mediawiki.org/wiki/Extension:Babel#Usage
-
-And what's so called Babel-N template: :{{Babel-5|ca|es-3|en-2|fr-2|de-1}}
-
 There are also some alternatives to the Babel template:
     - standalone language templates. Format: {{User xx-1}}{{User yy-1}}{{User zz-1}}. https://en.wikipedia.org/wiki/Category:Language_user_templates
     - Babel-N template. Format: {{Babel-N|1={{User xx-1}}{{User yy-1}}{{User zz-1}}}} https://en.wikipedia.org/wiki/Template:Babel-N
@@ -17,64 +10,60 @@ import regex as re
 from typing import Iterator
 from .. import languages
 from .common import CaptureResult, Identifier, Span
-
-class LanguageLevel:
-    """Class which stores the language and the level associatecd with the user"""
-
-    """Map n value (mother tongue language level) into 6 (greater than each possibile value into Babel teamplate)"""
-    MOTHER_TONGUE_LEVEL = 6
-
-    """The pair language name and level of knowledge"""
-    def __init__(self, lang: str, level: int):
-        self.lang = lang.strip().lower()
-        self.level = level
-
-    def __lt__(self, other):
-        if self.lang == other.lang:
-            return self.level < other.level
-        return self.lang < other.lang
-
-    def __eq__(self, other):
-        return self.lang == other.lang and self.level == other.level
-
-    def __repr__(self):
-        return 'lang: {}; level: {}'.format(self.lang, self.level)
+from .utils.language_level import LanguageLevel
+from .utils.language_utils_functions import (
+    is_level, 
+    get_level,
+    write_error_level_not_recognized, 
+    write_error
+)
 
 # exports 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
-# REGEXs FOR https://en.wikipedia.org/wiki/Wikipedia:Babel
-babel_standard_pattern = r'{{(?:\s|\_)*Babel(?:\s|\_)*(?:(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)+)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO test and clean
-babel_extension_template = r'{{\s*#babel:(?:(?P<first_lang>((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3}))(\-(?:0|1|2|3|4|5|n)|)|)|(?:\s|\_)*(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)*)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO check if this can be incorporate into the first
-user_template_format = r'{{(?:\s|\_)*User(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|))}}'
-babel_n_template = r'{{(?:\s|\_)*Babel\-\d(?:\s|\_)*(?:(?P<lang>(\|((?:\s|\_)*(?:[a-zA-Z]{2}|[a-zA-Z]{3})(\-(?:0|1|2|3|4|5|n)|)|)(?:\s|\_)*)+)|(.*?(?:{{!}}|{{=}|).*?)*)}}' # TODO, there are many varaints, this is the most used one at least in the catalan wiki
-userboxes_template = r'' # TODO define, it seemed to be contained in the user_template format
+babel_standard_pattern = r'{{(?:\s|\_)*{Babel}[^\-](?:\s|\_)*(?P<lang>(.*?(?:{{!}}|{{=}}|).*?)*)}}'
+babel_extension_template = r'{{\s*#{babel}:(?P<lang>(.*?(?:{{!}}|{{=}}|).*?)*)}}'
+user_template_format = r'{{(?:\s|\_)*{User}(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{{two}}|[a-zA-Z]{{three}})(\-(?:0|1|2|3|4|5|n)|))}}'
+babel_n_template = r'{{(?:\s|\_)*{Babel}\-\d(?:\s|\_)*(?P<lang>(.*?(?:{{!}}|{{=}}|).*?)*)}}'
 
-KNOWN_LANGUAGES_REs = [
-    re.compile(babel_standard_pattern, re.I | re.U),
-    re.compile(babel_extension_template, re.I | re.U),
-    re.compile(user_template_format, re.I | re.U),
-    re.compile(babel_n_template, re.I | re.U),
-    # re.compile(userboxes_template, re.I | re.U)
+FORMATTED_STANDARD_BABEL_REs = [
+    re.compile(babel_standard_pattern.format(Babel=b), re.I | re.U)
+    for b in languages.babel_words
 ]
+
+FORMATTED_EXTENSION_BABEL_REs = [
+    re.compile(babel_extension_template.format(babel=b.lower()), re.I | re.U)
+    for b in languages.babel_words
+]
+
+FORMATTED_N_BABEL_REs = [
+    re.compile(babel_n_template.format(Babel=b), re.I | re.U)
+    for b in languages.babel_words
+]
+
+FORMATTED_USER_TEMPLATE_REs = [
+    re.compile(user_template_format.format(User=u, two='2', three='3'), re.I | re.U)
+    for u in languages.user_words
+]
+
+KNOWN_LANGUAGES_REs = FORMATTED_STANDARD_BABEL_REs + FORMATTED_EXTENSION_BABEL_REs + FORMATTED_N_BABEL_REs + FORMATTED_USER_TEMPLATE_REs
 
 def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
     for pattern in KNOWN_LANGUAGES_REs:
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_language_presence(match): # extract a named group called lang (basically it contains a single language if it's the user's mother tongue, otherwise lang-level)
-                raw_langs = retrieve_group(match)
+                raw_langs = match.group('lang')
                 if not raw_langs:
                     write_error(pattern, match)
                     return
-                # Need to parse the languages
                 parsed_languages = list(filter(None, raw_langs.strip().split('|'))) # retrieve the languages I am interested in for the user
                 for langs in parsed_languages:
-                    # if the level of knowledge is specified
                     l = langs.split('-', 1)
                     if len(l) > 1:
-                        if l[1].lower() == 'n':
-                            l[1] = LanguageLevel.MOTHER_TONGUE_LEVEL
-                        level = int(l[1])
+                        if not is_level(l[1]):
+                            write_error_level_not_recognized(match, l[1])
+                            return
+                        level = get_level(l[1])
                     else:
                         level = LanguageLevel.MOTHER_TONGUE_LEVEL
                     
@@ -86,28 +75,12 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                     else:
                         write_error(pattern, match) # Language not recognized
             else:
-                pass  # TODO what to do if there isn't any match with lang group
-
-def write_error_language_not_recognized(lang: str) -> None:
-    with open('error.txt', 'a+') as f:
-        f.write('{} not recognized\n'.format(lang))
-
-def write_error(pattern: re.Pattern, match: Iterator[re.Match]) -> None:
-    with open('error.txt', 'a+') as f:
-        f.write('pattern who failed {} match {}\n'.format(pattern, match))
+                pass
 
 def check_language_presence(match: Iterator[re.Match]) -> bool:
-    """Checks if some group is present inside the """
+    """Checks if some group is present inside the match object"""
     try:
-        match.group('lang') or match.group('first_lang')
+        match.group('lang')
         return True
     except IndexError:
         return False
-
-def retrieve_group(match: Iterator[re.Match]) -> str:
-    """Retrieve the right group according to the position of the language"""
-    try:
-        raw_langs = match.group('first_lang')
-    except IndexError:
-        raw_langs = match.group('lang')
-    return raw_langs

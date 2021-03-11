@@ -124,11 +124,11 @@ def main():
             stats_output = open(os.devnull, 'wt')
         else:
             pages_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.features.xml')),
+                path=str(args.output_dir_path/(basename + '.features.json')),
                 compression=args.output_compression,
             )
             stats_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.stats.xml')),
+                path=str(args.output_dir_path/(basename + '.stats.json')),
                 compression=args.output_compression,
             )
         args.func(

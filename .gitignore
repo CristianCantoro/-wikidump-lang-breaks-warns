@@ -78,3 +78,6 @@ iso_langs.json
 
 # parse error file
 error.txt
+
+# useful template and languages jsons
+*.json

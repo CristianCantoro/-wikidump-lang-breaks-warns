@@ -2,102 +2,62 @@
 
 import collections
 import datetime
-
+import json
 import more_itertools
 import mwxml
-import jsonable
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 
 from .. import dumper, extractors, languages, utils
 
-# TODO change the check for mother tongue level
-features_template = '''
-<mediawiki xml:lang="en">
-    <siteinfo>
-        <sitename>${siteinfo.name | x}</sitename>
-        <dbname>${siteinfo.dbname | x}</dbname>
-        <base>${siteinfo.base | x}</base>
-        <generator>${generator | x}</generator>
-        <case>${siteinfo.case | x}</case>
-        <namespaces>
-            % for namespace in siteinfo.namespaces:
-            <namespace key="${namespace.id | x}" case="${namespace.case | x}">${namespace.name | x}</namespace>
-            % endfor
-        </namespaces>
-    </siteinfo>
-    % for page in pages:  # basically a for in xml
-    <user>
-        <title>${page.title | x}</title>
-        <ns>${page.namespace | x}</ns>
-        <id>${page.id | x}</id>
-        % for revision in page.revisions:
-        <revision>
-            <id>${revision.id | x}</id>
-            <user>${revision.user | x}</user>
-            <user_id>${revision.user.id | x}</user_id>
-            <user_name>${revision.user.text | x}</user_name>
-            <timestamp>${revision.timestamp | x}</timestamp>
-            <text xml:space="preserve">${revision.text | x}</text>
-            <languages>
-                % for l in revision.languages:
-                <knowledge>
-                    <lang>${l.lang | x}</lang>
-                    % if l.level == 6: 
-                    <level>N</level>
-                    % else:
-                    <level>${l.level | x}</level>
-                    % endif
-                </knowledge>
-                % endfor
-            </languages>
-        </revision>
-        % endfor
-    </user>
-    % endfor
-</mediawiki>
-'''
+class Page:
+    def __init__(self, id, namespace, title, revisions):
+        self.id = id
+        self.namespace = namespace
+        self.title = title
+        self.revisions = revisions
 
-stats_template = '''
-<stats>
-    <performance>
-        <start_time>${stats['performance']['start_time']}</start_time>
-        <end_time>${stats['performance']['end_time']}</end_time>
-        <revisions_analyzed>${stats['performance']['revisions_analyzed']}</revisions_analyzed>
-        <pages_analyzed>${stats['performance']['pages_analyzed']}</pages_analyzed>
-    </performance>
-    <users>
-        <total>${stats['users']['total']| x}</total>
-        <languages>
-            % for l in stats['users']['languages']:
-            <lang>
-                <name>${l | x}</name>
-                % for i in range(len(stats['users']['languages'][l]['knowledge'])):
-                <knowledge>
-                    <level>${i| x}</level>
-                    <occurences>${stats['users']['languages'][l]['knowledge'][i]| x}<occurences>
-                </knowledge>
-                % endfor
-            </lang>
-            % endfor
-        </languages>
-    </users>
-</stats>
-'''
+    def to_dict(self):
+        obj = dict()
+        obj['id'] = self.id
+        obj['namespace'] = self.namespace
+        obj['title'] = self.title
+        obj['revisions'] = list()
+        for rev in self.revisions:
+            obj['revisions'].append(rev.to_dict())
+        return obj
 
-Page = collections.namedtuple('Page', [
-    'id',
-    'namespace',
-    'title',
-    'revisions',
-])
+    def __repr__(self):
+        s = '{}, {}, {}, {}, {}'.format(self.id, self.namespace, self.title, self.revisions, utils.has_next(more_itertools.peekable(self.revisions)))
+        for i in self.revisions:
+            s += ', revs: [{}]'.format(i)
+        return s
 
-Revision = collections.namedtuple('Revision', [
-    'id',
-    'user',
-    'text',          # only for debug purpose
-    'timestamp',
-    'languages',
-])
+
+class Revision:
+    def __init__(self, id, user, text, timestamp, languages):
+        self.id = id
+        self.user = user
+        self.text = text
+        self.timestamp = timestamp
+        self.languages = languages
+
+    def to_dict(self):
+        obj = dict()
+        obj['id'] = self.id
+        obj['user_id'] = self.user.id
+        obj['user_name'] = self.user.text
+        obj['text'] = self.text
+        obj['timestamp'] = self.timestamp
+        obj['languages'] = list()
+        for lang in self.languages:
+            obj['languages'].append(lang.to_dict())
+        return obj
+    
+    def __repr__(self):
+        s = '{}, {}, {}, {}'.format(self.id, self.user.id, self.user.text, self.timestamp)
+        for i in self.languages:
+            s += ',[ {} {} ]'.format(i.lang, i.level)
+        return s
 
 def extract_revisions(
         mw_page: mwxml.Page,
@@ -140,12 +100,12 @@ def extract_revisions(
         )
 
         # Return only the revisions with at least one language if the flag's active
+        stats['performance']['revisions_analyzed'] += 1
         if only_revisions_with_languages:
             if languages:
                 yield rev
         else:
             yield rev
-        stats['performance']['revisions_analyzed'] += 1
 
 
 def extract_pages(
@@ -156,11 +116,12 @@ def extract_pages(
         only_revisions_with_languages: bool) -> Iterator[Page]:
     """Extract known languages from an user's page."""
 
-    #break_me_counter = 100
+    break_me_counter = 50
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
+        
         # Skip non-user pages, according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
         if mw_page.namespace != 2:
             utils.log('Skipped (namespace != 2)')
@@ -177,7 +138,7 @@ def extract_pages(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
-            revisions=revisions_generator,
+            revisions=list(revisions_generator)
         )
 
         # Return only the pages with at least one language if the flag's active
@@ -188,12 +149,13 @@ def extract_pages(
         else:
             yield page
             stats['users']['total'] += 1
+
         stats['performance']['pages_analyzed'] += 1
 
-        #break_me_counter -= 1
+        break_me_counter -= 1
 
-        #if(break_me_counter == 0):
-        #    break
+        if(break_me_counter == 0):
+            break
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
@@ -239,6 +201,8 @@ def main(
         },
     }
 
+    print(args.only_last_revision, args.only_pages_with_languages, args.only_revisions_with_languages)
+
     pages_generator = extract_pages(
         dump,
         stats=stats,
@@ -247,20 +211,12 @@ def main(
         only_revisions_with_languages=args.only_revisions_with_languages,
     )
 
-    with features_output_h:
-        stats['performance']['start_time'] = datetime.datetime.utcnow()
-        dumper.render_template(
-            features_template,
-            output_handler=features_output_h,
-            siteinfo=dump.site_info,
-            pages=pages_generator,
-            generator='youtux/wikidump',
-        )
-        stats['performance']['end_time'] = datetime.datetime.utcnow()
+    stats['performance']['start_time'] = datetime.datetime.utcnow()
 
-    with stats_output_h:
-        dumper.render_template(
-            stats_template,
-            stats_output_h,
-            stats=stats,
-        )
+    for obj in pages_generator:
+        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+        features_output_h.write("\n")
+    
+    stats['performance']['end_time'] = datetime.datetime.utcnow()
+    stats_output_h.write(json.dumps(stats, indent=4, default=str))
+    stats_output_h.write("\n")
