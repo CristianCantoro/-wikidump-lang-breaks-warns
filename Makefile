@@ -21,7 +21,7 @@ PROGRAM := wikidump
 OUTPUT_FOLDER := output
 PROGRAM_FLAGS := --output-compression gzip
 FUNCTION_TO_RUN := extract-known-languages
-FUNCTION_SUB_COMMANDS := --only-pages-with-languages --only-revisions-with-languages
+FUNCTION_SUB_COMMANDS := --only-pages-with-languages --only-revisions-with-languages --only-last-revision
 PYTHON := python3
 PIP := pip
 DUMP_EXT := .7z
@@ -61,10 +61,10 @@ install-dev:
 	@$(PIP) install -r requirements.dev.txt
 	@$(ECHO) '$(GREEN)Done$(NONE)'
 
-run-ca:  # BROKEN IN SOME WAY, DON'T KNOW HOW
+run-ca:
 	@$(ECHO) '$(BLUE)Running cawiki datasets..$(NONE)'
-	@$(eval FILES=$(wildcard $(DUMP_FOLDER)/$(CAWIKI)/*$(DUMP_EXT)))
-	@$(PYTHON) $(PYFLAGS) $(PROGRAM) $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS)
+	@$(eval FILES=$(wildcard $(DUMP_FOLDER)/$(CAWIKI)/**/*$(DUMP_EXT)))
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
 run-it:

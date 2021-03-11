@@ -447,6 +447,7 @@ iso639_languages = {
     "zu": "Zulu",
     "zul": "Zulu"
 }
+
 user_words = ["Kasutaja", "Úsáideoir", "Pengguna", "ব্যবহারকারী", "Naraguna", "Lietotājs", "Thành viên", "U", "Anv-data", "பயனர்", "Utente", "प्रयोगकर्ता", "User", "Utot", "Lankide", "مس", "کاربر", "सदस्य", "صارف", "सदस्यः", "Usator", "ผู้ใช้", "Kullanıcı", "Bruger", "Benutzer", "İstifadəçi", "Uporabnik", "Wikipedista", "Bruker", "Oníṣe", "משתמש", "Gebruiker", "Szerkesztői linkek/hosszú", "Usuário2", "Χρήστης", "사용자 문서", "Uzanto2", "Корисник", "Użytkownik", "Gebruikerlinks", "User0"]
 
 babel_words = ["Babil", "Babîl", "བྷི་པེལ།", "Babilon", "באבעל", "Reo kaimahi", "بابل", "Boita Babel", "Βαβέλ", "Բաբելոն", "Babylon-jazyk", "Boîte Babel", "ບາເບລ", "Pēpeli", "บาเบล", "Babel", "바벨", "Вавилон", "Babelejo"]

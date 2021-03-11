@@ -1,45 +1,30 @@
 """Extract the language known by the registered users in Wikipedia and some statistics about them"""
 
 import collections
-import datetime
 import json
 import more_itertools
 import mwxml
 import datetime
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from backports.datetime_fromisoformat import MonkeyPatch
 
 from .. import dumper, extractors, languages, utils
 
-# GENERATORS CONSUMES
+# Polyfiller for retrocompatibiliy with Python3.5
+MonkeyPatch.patch_fromisoformat()
 
-class Page:
-    def __init__(self, id, namespace, title, revisions):
-        self.id = id
-        self.namespace = namespace
-        self.title = title
-        self.revisions = revisions
-        self.discard = False
-
-    def to_dict(self):
-        obj = dict()
-        obj['id'] = self.id
-        obj['namespace'] = self.namespace
-        obj['title'] = self.title
-        obj['revisions'] = list()
-        for rev in self.revisions:
-            obj['revisions'].append(rev.to_dict())
-        return obj
-
+# REVISION AND PAGE CLASSES
 
 class Revision:
-    def __init__(self, id, user, timestamp, languages):
-        self.id = id
-        self.user = user
-        self.timestamp = timestamp
-        self.languages = languages
-        self.discard = False
+    """Class which represent a revision of the user page"""
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, languages: Iterable[extractors.languages.LanguageLevel]):
+        self.id = id                    # revision id
+        self.user = user                # revision user
+        self.timestamp = timestamp      # revision timestamp
+        self.languages = languages      # set of the languages associated with the user in that revision of his or her user page
 
-    def to_dict(self):
+    def to_dict(self) -> str:
+        """Converts the object instance into a dictionary"""
         obj = dict()
         obj['id'] = self.id
         obj['user_id'] = self.user.id
@@ -50,16 +35,36 @@ class Revision:
             obj['languages'].append(lang.to_dict())
         return obj
 
+class Page:
+    """Class which represent a page containing a list of revisions"""
+    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision]):
+        self.id = id                # page id
+        self.namespace = namespace  # page namespace
+        self.title = title          # page title
+        self.revisions = revisions  # list of revisions
+
+    def to_dict(self) -> Mapping:
+        """Converts the object instance into a dictionary"""
+        obj = dict()
+        obj['id'] = self.id
+        obj['namespace'] = self.namespace
+        obj['title'] = self.title
+        obj['revisions'] = list()
+        for rev in self.revisions:
+            obj['revisions'].append(rev.to_dict())
+        return obj
+
 def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
         only_last_revision: bool,
         only_revisions_with_languages: bool) -> Iterator[Revision]:
     
-    """Extract the known languages within a user's page."""
+    """Extracts the known languages within a user page."""
     revisions = more_itertools.peekable(mw_page)
 
-    oldest_revision = None
+    # Newest revisions, useful only if the only_last_revision flag is set equal to true
+    newest_revision = None
 
     for mw_revision in revisions:
         utils.dot()
@@ -67,6 +72,7 @@ def extract_revisions(
         # check if it's last revision
         is_last_revision = not utils.has_next(revisions)
 
+        # remove html comments
         text = utils.remove_comments(mw_revision.text or '')
 
         # It extracts a list of LanguageLevel instances, composed of (languages and it's level)
@@ -75,7 +81,9 @@ def extract_revisions(
         # Update stats
         for l in languages:
             if l.lang in stats['users']['languages']:
-                stats['users']['languages'][l.lang]['knowledge'][l.level] += 1
+                # not to exceed the indices of the list
+                if 0 <= l.level < len(stats['users']['languages'][l.lang]['knowledge']):
+                    stats['users']['languages'][l.lang]['knowledge'][l.level] += 1
             else:
                 stats['users']['languages'][l.lang] = dict()
                 stats['users']['languages'][l.lang]['knowledge'] = [0] * (extractors.languages.LanguageLevel.MOTHER_TONGUE_LEVEL + 1)
@@ -90,36 +98,34 @@ def extract_revisions(
         )
 
         # Check the oldest revisions possible
-        if not oldest_revision:
-            oldest_revision = rev
+        if not newest_revision:
+            newest_revision = rev
         else:
-            oldest_date = datetime.datetime.fromisoformat(oldest_revision.timestamp.replace('Z', '+00:00'))
-            new_date = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
-
-            # I am interested in only the ones with at least a language
-            if only_revisions_with_languages:
-                if not languages:
-                    new_date = oldest_date
-
-            if oldest_date < new_date:
-                oldest_revision = rev
+            newest_date = datetime.datetime.fromisoformat(newest_revision.timestamp.replace('Z', '+00:00'))
+            current_date = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
+            # change the revision if the current one is newer
+            if newest_date < current_date:
+                newest_revision = rev
 
         # Return only the revisions with at least one language if the flag's active
         stats['performance']['revisions_analyzed'] += 1
         
         # Yield when requested
+
+        # requested only the last revision
         if only_last_revision:
+            # asked for revisions with languages
             if only_revisions_with_languages:
-                if oldest_revision.languages and is_last_revision:
-                    yield oldest_revision
+                # has the languages list not empty
+                if newest_revision.languages and is_last_revision:
+                    yield newest_revision
             elif is_last_revision:
-                yield oldest_revision
+                yield newest_revision
         elif only_revisions_with_languages:
             if languages:
                 yield rev
         else:
             yield rev
-
 
 def extract_pages(
         dump: Iterable[mwxml.Page],
@@ -127,9 +133,7 @@ def extract_pages(
         only_last_revision: bool,
         only_pages_with_languages: bool,
         only_revisions_with_languages: bool) -> Iterator[Page]:
-    """Extract known languages from an user's page."""
-
-    break_me_counter = 50
+    """Extract known languages from an user page."""
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -162,16 +166,8 @@ def extract_pages(
         else:
             stats['users']['total'] += 1
             yield page
-
-        if mw_page.title == 'Llull':
-            break
-
+            
         stats['performance']['pages_analyzed'] += 1
-
-        break_me_counter -= 1
-
-        if(break_me_counter == 0):
-            break
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
@@ -230,9 +226,8 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        if not obj.discard:
-            features_output_h.write(json.dumps(obj.to_dict(), indent=4))
-            features_output_h.write("\n")
+        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+        features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
     stats_output_h.write(json.dumps(stats, indent=4, default=str))
