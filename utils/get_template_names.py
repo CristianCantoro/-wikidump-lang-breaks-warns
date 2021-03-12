@@ -25,7 +25,7 @@ if __name__ == "__main__":
         print('Insert the name of the template as command line argument')
         exit(0)
 
-    sys.argv[1] = sys.argv[1].title()
+    # sys.argv[1] = sys.argv[1].title()
     f = open('iso_639_1.json', )
     languages = json.load(f)
     f.close()

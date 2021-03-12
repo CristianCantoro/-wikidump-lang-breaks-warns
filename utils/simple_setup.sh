@@ -18,7 +18,7 @@ for i in "${dates[@]}"; do
         echo "Downloading ${j}wiki dated ${i}"
         $WIKI_DUMP/scripts/wikidump-download.sh "https://dumps.wikimedia.org/${j}wiki/${i}"
         mkdir -p "../dumps/${j}wiki/${i}"
-        mv "./data/${j}wiki/${i}/*" "../dumps/${j}wiki/${i}/" # maybe a symbolic link would be better
+        ln -s "./data/${j}wiki/${i}/*" "../dumps/${j}wiki/${i}/"
     done
 done
 

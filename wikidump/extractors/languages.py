@@ -10,7 +10,7 @@ import regex as re
 from typing import Iterator
 from .. import languages
 from .common import CaptureResult, Identifier, Span
-from .utils.language_level import LanguageLevel
+from .types.language_level import LanguageLevel
 from .utils.language_utils_functions import (
     is_level, 
     get_level,

@@ -1,0 +1,3 @@
+wikibreak_standard_words = ["विकिसुट्टी", "위키휴가", "விக்கி விடுப்பு", "Wikipahinga", "Wikifialantsasatra", "Wikibreak", "විකි-විරාමය", "Cutiwiki", "Wikilèrèn", "উইকিছুটি", "Wikipausa", "Wikipause", "Wikivacation", "Wikibreak-in-house", "Wikibreak switch", "At school", "Exams", "Vacation", "Out of town", "Personal issues", "ذاتی معاملات"]
+wikibreak_back_slash_not_words = ["لا يستطيع التقاعد", "Can't retire", "Considering retirement", "Off and On WikiBreak"]
+wikibreak_health_related_words = []

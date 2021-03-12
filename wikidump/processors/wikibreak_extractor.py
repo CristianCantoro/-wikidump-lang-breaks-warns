@@ -8,20 +8,20 @@ import datetime
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 from backports.datetime_fromisoformat import MonkeyPatch
 
-from .. import dumper, extractors, languages, utils
+from .. import dumper, extractors, wikibreaks, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
 
 # REVISION AND PAGE CLASSES
-
 class Revision:
     """Class which represent a revision of the user page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, languages: Iterable[extractors.languages.LanguageLevel]):
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, text: str, wikibreaks: Iterable[extractors.wikibreaks.Wikibreak]):
         self.id = id                    # revision id
         self.user = user                # revision user
         self.timestamp = timestamp      # revision timestamp
-        self.languages = languages      # set of the languages associated with the user in that revision of his or her user page
+        self.text = text                # revision text content
+        self.wikibreaks = wikibreaks    # set of wikibreaks
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -30,9 +30,10 @@ class Revision:
         obj['user_id'] = self.user.id
         obj['user_name'] = self.user.text
         obj['timestamp'] = self.timestamp
-        obj['languages'] = list()
-        for lang in self.languages:
-            obj['languages'].append(lang.to_dict())
+        obj['text'] = self.text
+        obj['wikibreaks'] = list()
+        for w_b in self.wikibreaks:
+            obj['wikibreaks'].append(w_b.to_dict())
         return obj
 
 class Page:
@@ -58,9 +59,9 @@ def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
         only_last_revision: bool,
-        only_revisions_with_languages: bool) -> Iterator[Revision]:
+        only_revisions_with_wikibreaks: bool) -> Iterator[Revision]:
     
-    """Extracts the known languages within a user page."""
+    """Extracts the known languages within a user page or user talk page."""
     revisions = more_itertools.peekable(mw_page)
 
     # Newest revisions, useful only if the only_last_revision flag is set equal to true
@@ -75,27 +76,21 @@ def extract_revisions(
         # remove html comments
         text = utils.remove_comments(mw_revision.text or '')
 
-        # It extracts a list of LanguageLevel instances, composed of (languages and it's level)
-        languages = [lang for lang, _ in extractors.languages.language_knowledge(text)]
+        # It extracts a TODO about wikibreks
+        wikibreaks = [wikibreak for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text)]
 
         # Update stats
-        if not only_last_revision or (only_last_revision and is_last_revision):
-            for l in languages:
-                if l.lang in stats['users']['languages']:
-                    # not to exceed the indices of the list
-                    if 0 <= l.level < len(stats['users']['languages'][l.lang]['knowledge']):
-                        stats['users']['languages'][l.lang]['knowledge'][l.level] += 1
-                else:
-                    stats['users']['languages'][l.lang] = dict()
-                    stats['users']['languages'][l.lang]['knowledge'] = [0] * (extractors.languages.LanguageLevel.MOTHER_TONGUE_LEVEL + 1)
-                    stats['users']['languages'][l.lang]['knowledge'][l.level] = 1
+        for wb in wikibreaks:
+            # TODO Update stats if necessary
+            pass
 
         # Build the revision
         rev = Revision(
             id=mw_revision.id,
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
-            languages=languages
+            text=mw_revision.text,
+            wikibreaks=wikibreaks
         )
 
         # Check the oldest revisions possible
@@ -116,14 +111,14 @@ def extract_revisions(
         # requested only the last revision
         if only_last_revision:
             # asked for revisions with languages
-            if only_revisions_with_languages:
+            if only_revisions_with_wikibreaks:
                 # has the languages list not empty
-                if newest_revision.languages and is_last_revision:
+                if newest_revision.wikibreaks and is_last_revision:
                     yield newest_revision
             elif is_last_revision:
                 yield newest_revision
-        elif only_revisions_with_languages:
-            if languages:
+        elif only_revisions_with_wikibreaks:
+            if wikibreaks:
                 yield rev
         else:
             yield rev
@@ -132,24 +127,27 @@ def extract_pages(
         dump: Iterable[mwxml.Page],
         stats: Mapping,
         only_last_revision: bool,
-        only_pages_with_languages: bool,
-        only_revisions_with_languages: bool) -> Iterator[Page]:
-    """Extract known languages from an user page."""
+        only_pages_with_wikibreaks: bool,
+        only_revisions_with_wikibreaks: bool) -> Iterator[Page]:
+    """Extract wikibreaks from an user page."""
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
         
-        # Skip non-user pages, according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
+        # Skip non-(user pages or ser talk page), according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
         if mw_page.namespace != 2:
             utils.log('Skipped (namespace != 2)')
+            continue
+        elif mw_page.namespace != 3:
+            utils.log('Skipped (namespace != 3)')
             continue
         
         revisions_generator = extract_revisions(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
-            only_revisions_with_languages=only_revisions_with_languages
+            only_revisions_with_wikibreaks=only_revisions_with_wikibreaks
         )
 
         page = Page(
@@ -159,35 +157,35 @@ def extract_pages(
             revisions=list(revisions_generator),
         )
 
-        # Return only the pages with at least one language if the flag's active
-        if only_pages_with_languages:
+        # Return only the pages with at least one wikibreak if the flag's active
+        if only_pages_with_wikibreaks:
             if len(page.revisions) > 0:
-                stats['users']['total'] += 1
+                stats['wikibreaks']['total'] += 1
                 yield page
         else:
-            stats['users']['total'] += 1
+            stats['wikibreaks']['total'] += 1
             yield page
             
-        if stats['users']['total'] == 10:
+        if stats['wikibreaks']['total'] == 10:
             break
-
+        
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
-        'extract-known-languages',
+        'wikibreak_extractor',
         help='Extract the languages known by the users',
     )
     parser.add_argument(
-        '--only-pages-with-languages',
+        '--only-pages-with-wikibreaks',
         action='store_true',
-        help='Consider only the pages with at least a revision which contains a known language.',
+        help='Consider only the pages with at least a revision which contains a wikibreak.',
     )
     parser.add_argument(
-        '--only-revisions-with-languages',
+        '--only-revisions-with-wikibreaks',
         action='store_true',
-        help='Consider only the revisions with contain at least a known language.',
+        help='Consider only the revisions with contain at least a wikibreak.',
     )
     parser.add_argument(
         '--only-last-revision',
@@ -211,9 +209,8 @@ def main(
             'revisions_analyzed': 0,
             'pages_analyzed': 0,
         },
-        'users': {
+        'wikibreaks': {
             'total': 0,
-            'languages': dict(),
         },
     }
 
@@ -221,8 +218,8 @@ def main(
         dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
-        only_pages_with_languages=args.only_pages_with_languages,
-        only_revisions_with_languages=args.only_revisions_with_languages
+        only_pages_with_wikibreaks=args.only_pages_with_wikibreaks,
+        only_revisions_with_wikibreaks=args.only_revisions_with_wikibreaks
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()

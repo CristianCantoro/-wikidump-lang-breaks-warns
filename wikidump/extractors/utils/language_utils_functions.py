@@ -1,5 +1,5 @@
 import re
-from .language_level import LanguageLevel
+from ..types.language_level import LanguageLevel
 from typing import Iterator
 
 def is_level(value: str) -> bool:
