@@ -25,10 +25,10 @@ new = r'{{(?:\s|\_)*(?P<wikipause_name>wikibreak)(?:\s|\_)*(?:\|(?:(?P<name>(\s|
 __all__ = ['wikibreaks_extractor', 'Wikibreak', ]
 
 # Maybe type could be useful, let's see
-wikibreak_pattern = r'{{(?:\s|\_)*(?P<type>{wikibreak})(?:\s|\_)*[^\|{empty}=]+}}'
+wikibreak_pattern = r'{{(?:\s|\_)*(?P<type>{wikibreak})(?:\s|\_|\|\=|.*?)}}'
 
 WIKIBREAKS_REs = [ 
-    re.compile(wikibreak_pattern.format(wikibreak=w_word.lower(), empty='\{\}'), re.I | re.U) 
+    re.compile(wikibreak_pattern.format(wikibreak=w_word.lower()), re.I | re.U) 
     for w_word in wikibreaks.wikibreak_standard_words
 ]
 

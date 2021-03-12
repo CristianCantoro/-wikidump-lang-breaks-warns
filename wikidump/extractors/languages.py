@@ -21,10 +21,10 @@ from .utils.language_utils_functions import (
 # exports 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
-babel_standard_pattern = r'{{(?:\s|\_)*{Babel}[^\-](?:\s|\_)*(?P<lang>(.*?(?:{{!}}|{{=}}|).*?)*)}}'
-babel_extension_template = r'{{\s*#{babel}:(?P<lang>(.*?(?:{{!}}|{{=}}|).*?)*)}}'
+babel_standard_pattern = r'{{(?:\s|\_)*{Babel}[^\-](?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)}}'
+babel_extension_template = r'{{\s*#{babel}:(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)}}'
 user_template_format = r'{{(?:\s|\_)*{User}(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{{two}}|[a-zA-Z]{{three}})(\-(?:0|1|2|3|4|5|n)|))}}'
-babel_n_template = r'{{(?:\s|\_)*{Babel}\-\d(?:\s|\_)*(?P<lang>(.*?(?:{{!}}|{{=}}|).*?)*)}}'
+babel_n_template = r'{{(?:\s|\_)*{Babel}\-\d(?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|\_)*?)*)}}'
 
 FORMATTED_STANDARD_BABEL_REs = [
     re.compile(babel_standard_pattern.format(Babel=b), re.I | re.U)
@@ -58,6 +58,7 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                     return
                 parsed_languages = list(filter(None, raw_langs.strip().split('|'))) # retrieve the languages I am interested in for the user
                 for langs in parsed_languages:
+                    langs = langs.strip()
                     l = langs.split('-', 1)
                     if len(l) > 1:
                         if not is_level(l[1]):
