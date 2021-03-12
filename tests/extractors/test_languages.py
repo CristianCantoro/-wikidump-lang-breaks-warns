@@ -5,27 +5,7 @@ from wikidump.extractors import languages
 from wikidump.extractors.common import Identifier
 
 INPUT_TEXT = '''
-{{Babel|ca|es-4|en-2|an-1|ast-1|fr-1|gl-1|it-1|la-1|pt-1}}
-
-{{any de naixement|1991}}
-{{Viquipedista dels PPCC}}
-{{Viquipedista berguedà}}
-{{Viquipedista roig}}
-{{Patumaire}}
-{{Seguidor Bàsquet Manresa}}
-{{Lector Tolkien}}
-{{Ska}}
-{{Metal}}
-{{System Of A Down}}
-{{Usuari last.fm}}
-{{Ateu}}
-{{Viquipedista socialista}}
-{{Republicà}}
-{{Viquipedista independentista PPCC}}
-{{Antifeixista}}
-{{Viquipedista de la CUP}}
-
-[[Categoria:Viquipedistes del Berguedà]]
+{{Babel|ca|es-4|en-2|an-1|ast-1|fr-1|gl-1|it-1|la-1|pt-1|
 
 '''
 
@@ -49,7 +29,6 @@ EXPECTED_LANGS = 4
 def test_language_knowledge():
     langs = list(lang for lang,_ in languages.language_knowledge(INPUT_TEXT))
     print(langs)
-    exit(0)
     langs.sort()
 
     found_langs = set(l.lang for l in langs)

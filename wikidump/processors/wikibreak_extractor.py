@@ -174,7 +174,7 @@ def extract_pages(
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
-        'extractor_wikibreaks',
+        'extract_wikibreaks',
         help='Extract the languages known by the users',
     )
     parser.add_argument(

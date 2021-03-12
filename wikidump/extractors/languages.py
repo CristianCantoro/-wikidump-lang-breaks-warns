@@ -21,10 +21,10 @@ from .utils.language_utils_functions import (
 # exports 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
-babel_standard_pattern = r'{{(?:\s|\_)*{Babel}[^\-](?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)}}'
+babel_standard_pattern = r'{{(?:\s|\_)*{Babel}[^\-](?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)(?:}}|$)'
 babel_extension_template = r'{{\s*#{babel}:(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)}}'
-user_template_format = r'{{(?:\s|\_)*{User}(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{{two}}|[a-zA-Z]{{three}})(\-(?:0|1|2|3|4|5|n)|))}}'
-babel_n_template = r'{{(?:\s|\_)*{Babel}\-\d(?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|\_)*?)*)}}'
+user_template_format = r'{{(?:\s|\_)*{User}(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{{two}}|[a-zA-Z]{{three}})(\-(?:0|1|2|3|4|5|n)|))(?:}}|$)'
+babel_n_template = r'{{(?:\s|\_)*{Babel}\-\d(?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|\_)*?)*)(?:}}|$)'
 
 FORMATTED_STANDARD_BABEL_REs = [
     re.compile(babel_standard_pattern.format(Babel=b), re.I | re.U)
@@ -50,6 +50,7 @@ KNOWN_LANGUAGES_REs = FORMATTED_STANDARD_BABEL_REs + FORMATTED_EXTENSION_BABEL_R
 
 def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
     for pattern in KNOWN_LANGUAGES_REs:
+        print('Sto analizzando', pattern)
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_language_presence(match): # extract a named group called lang (basically it contains a single language if it's the user's mother tongue, otherwise lang-level)
                 raw_langs = match.group('lang')
