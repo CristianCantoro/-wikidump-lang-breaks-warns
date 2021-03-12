@@ -448,9 +448,9 @@ iso639_languages = {
     "zul": "Zulu"
 }
 
-user_words = ["Kasutaja", "Úsáideoir", "Pengguna", "ব্যবহারকারী", "Naraguna", "Lietotājs", "Thành viên", "U", "Anv-data", "பயனர்", "Utente", "प्रयोगकर्ता", "User", "Utot", "Lankide", "مس", "کاربر", "सदस्य", "صارف", "सदस्यः", "Usator", "ผู้ใช้", "Kullanıcı", "Bruger", "Benutzer", "İstifadəçi", "Uporabnik", "Wikipedista", "Bruker", "Oníṣe", "משתמש", "Gebruiker", "Szerkesztői linkek/hosszú", "Usuário2", "Χρήστης", "사용자 문서", "Uzanto2", "Корисник", "Użytkownik", "Gebruikerlinks", "User0"]
+user_words = ["Userlinks", "Потребител", "کاربر", "Bruker", "Uiser", "ผู้ใช้", "Lankide", "Úsáideoir", "U", "Utent", "İstifadəçi", "Użytkownik", "Wužywaŕ", "Lietotājs", "ایشلدن", "Usor", "Uza-na'in", "User link", "User", "Kasutaja", "Корисник", "Usuario", "Utente", "Suradnik", "Uzanto2", "Wikipedista", "Naraguna", "Usuário2", "Thành viên", "Χρήστης", "Userinfo", "Kullanıcı", "Käyttäjä", "مس", "Ҡулланыусы", "Redaktor", "Benutzer", "Bruger", "Ulanyjy", "Uporabnik", "Pengguna", "प्रयोगकर्ता", "సభ్యుడు", "सदस्य", "Userlinks-rights", "Brukar", "کارور", "Szerkesztői linkek/hosszú", "بەکارھێنەر", "B", "ব্যবহারকারী", "Korisnik", "Utot", "کارن", "ܡܦܠܚܢܐ", "பயனர்", "Gebruikerlinks", "Anv-data"]
 
-babel_words = ["Babil", "Babîl", "བྷི་པེལ།", "Babilon", "באבעל", "Reo kaimahi", "بابل", "Boita Babel", "Βαβέλ", "Բաբելոն", "Babylon-jazyk", "Boîte Babel", "ບາເບລ", "Pēpeli", "บาเบล", "Babel", "바벨", "Вавилон", "Babelejo"]
+babel_words = ["Бабілёнская вежа", "Вавилон", "Babylon-jazyk", "Papela", "Babil", "Reo kaimahi", "بابئل", "Pēpeli", "Babelejo", "Málkassi-X", "Babîl", "Pâ-phe̍t", "Babilu-*", "Бабил", "babel", "Babel", "བྷི་པེལ།", "באבעל", "บาเบล", "بابل", "Boîte Babel", "ບາເບລ", "Βαβέλ", "Babilon", "Bouèta Babél", "Բաբելոն", "Boita Babel", "바벨"]
 
 """
 What I mean for:

@@ -167,10 +167,7 @@ def extract_pages(
         else:
             stats['users']['total'] += 1
             yield page
-            
-        if stats['users']['total'] == 10:
-            break
-
+    
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):

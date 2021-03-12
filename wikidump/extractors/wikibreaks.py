@@ -25,7 +25,7 @@ new = r'{{(?:\s|\_)*(?P<wikipause_name>wikibreak)(?:\s|\_)*(?:\|(?:(?P<name>(\s|
 __all__ = ['wikibreaks_extractor', 'Wikibreak', ]
 
 # Maybe type could be useful, let's see
-wikibreak_pattern = r'{{(?:\s|\_)*(?P<type>{wikibreak})(?:\s|\_|\|\=|.*?)}}'
+wikibreak_pattern = r'{{(?:\s|\_)*(?P<type>{wikibreak})(?:\s|\_|\|\=|.*?)*}}'
 
 WIKIBREAKS_REs = [ 
     re.compile(wikibreak_pattern.format(wikibreak=w_word.lower()), re.I | re.U) 
@@ -42,6 +42,8 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                     return
                 # Should generate the wikipause object
                 # TODO parse the attributes
+                print(wiki_name)
+                exit(0)
                 wikipause_obj = Wikibreak(wiki_name, None, None, None, None)
                 yield CaptureResult(
                     data=(wikipause_obj), span=(match.start(), match.end())

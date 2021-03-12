@@ -5,6 +5,7 @@ DUMP_FOLDER := dumps
 CAWIKI := cawiki
 ITWIKI := itwiki
 DEWIKI := dewiki
+ENWIKI := enwiki
 ESWIKI := eswiki
 FRWIKI := frwiki
 JAWIKI := jawiki
@@ -82,6 +83,12 @@ run-de:
 run-es:
 	@$(ECHO) '$(BLUE)Running eswiki datasets..$(NONE)'
 	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(ESWIKI)/**/*$(DUMP_EXT)))
+	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS) $(FUNCTION_SUB_COMMANDS)
+	@$(ECHO) '$(BLUE)Done$(NONE)'
+
+run-en:
+	@$(ECHO) '$(BLUE)Running enwiki datasets..$(NONE)'
+	@$(eval FILES=$(shell find $(DUMP_FOLDER)/$(ENWIKI)/**/*$(DUMP_EXT)))
 	@$(PYTHON) $(PYFLAGS) $(PROGRAM)  $(PROGRAM_FLAGS) $(FILES) $(OUTPUT_FOLDER) $(FUNCTION_TO_RUN) $(FUNCTION_SUB_COMMANDS) $(FUNCTION_SUB_COMMANDS)
 	@$(ECHO) '$(BLUE)Done$(NONE)'
 
