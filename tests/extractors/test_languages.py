@@ -5,11 +5,37 @@ from wikidump.extractors import languages
 from wikidump.extractors.common import Identifier
 
 INPUT_TEXT = '''
-<div class="toccolours itwiki_template_babelbox">
-<div class="intestazione">[[Wikipedia:Babel]]</div>
-{{Utente __it}}
-{{Utente __en-2}}
-{{Utente __sc}}
+{{capçalera d'etiquetes|Així sóc jo}}
+{{Viquipedista de Catalunya}}
+{{Biotecnòleg}}
+<center>\'\'\'Babel\'\'\'</center>
+{{Babel ca}}
+{{Babel es}}
+{{Babel en-1}}
+{{Babel af-0}}
+{{Babel ar-0}}
+{{Babel bg-0}}
+{{Babel cs-0}}
+{{Babel el-0}}
+{{Babel eu-0}}
+{{Babel ga-0}}
+{{Babel haw-0}}
+{{Babel id-0}}
+{{Babel nn-0}}
+{{Babel no-0}}
+{{Babel sw-0}}
+
+{{Vandalitzat|6}}
+{{tancament d'etiquetes}}
+
+===Projectes===
+*\'\'\'Viquiprojecte personal: Enllaços a la portada de qualitat\'\'\'. Que tots els enllaços de la portada no només estiguin en blau sinó a més apuntant cap a articles de qualitat que impresionin i empenyin a la gent a participar activament. M'ajudarà a aconseguir-ho la \'\'\'[[/Laboratori:Portada|màquina del temps]]\'\'\'.
+
+*[[Portal:Catalunya]]
+*[[Portal:Biotecnologia]] (em sap greu haver-ho deixat abandonat durant tant de temps)
+
+*[[/Calaix de sastre|Calaix de sastre]]
+
 '''
 
 EXPECTED_KNOWLEDGE = [

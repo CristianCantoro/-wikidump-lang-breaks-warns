@@ -1,4 +1,4 @@
-import re
+import regex as re
 from ..types.language_level import LanguageLevel
 from typing import Iterator
 
@@ -17,14 +17,12 @@ def get_level(value:str) -> int:
         value = LanguageLevel.MOTHER_TONGUE_LEVEL
     return int(value)
 
-# pattern: re.Pattern, match: Iterator[re.Match]
-def write_error_level_not_recognized(match, lev: str) -> None:
+def write_error_level_not_recognized(match: Iterator[re.Match], lev: str) -> None:
     #with open('error.txt', 'a+') as f:
     #    f.write('{} level {} not recognized\n'.format(match, lev))
     pass
 
-# pattern: re.Pattern, match: Iterator[re.Match]
-def write_error(pattern, match) -> None:
+def write_error(pattern: re.Pattern, match: Iterator[re.Match]) -> None:
     #with open('error.txt', 'a+') as f:
     #    f.write('pattern who failed {} match {}\n'.format(pattern, match))
     pass
