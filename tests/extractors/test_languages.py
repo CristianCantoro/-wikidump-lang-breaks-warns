@@ -5,8 +5,11 @@ from wikidump.extractors import languages
 from wikidump.extractors.common import Identifier
 
 INPUT_TEXT = '''
-{{Babel|ca|es-4|en-2|an-1|ast-1|fr-1|gl-1|it-1|la-1|pt-1|
-
+<div class="toccolours itwiki_template_babelbox">
+<div class="intestazione">[[Wikipedia:Babel]]</div>
+{{Utente __it}}
+{{Utente __en-2}}
+{{Utente __sc}}
 '''
 
 EXPECTED_KNOWLEDGE = [

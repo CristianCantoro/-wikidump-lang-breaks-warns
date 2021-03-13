@@ -21,7 +21,7 @@ from .utils.language_utils_functions import (
 # exports 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
-# https://regex101.com/r/B2iULI/1
+# https://regex101.com/r/cfjnU7/1
 babel_standard_pattern = r'''
     \{\{                        # match {{
         (?:                     # non-capturing group
@@ -31,6 +31,12 @@ babel_standard_pattern = r'''
         )*                      # 0 or multiple time the non-capturing group
         %s                      # Babel word to replace
         [^\-]                   # not match a - , to esclude babel_standard_pattern from babel_n_template
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        \|                      # match a pipe
         (?P<lang>               # named group <lang>
             [^{]*               # match anything but }, {{Babel | it | {{User en}} }} which are bad formatted are considered invalid
         )                       # end named group
@@ -99,7 +105,7 @@ user_template_format = r'''
         )
     \}\}'''                     # match }}
 
-# https://regex101.com/r/3z73BE/1
+# https://regex101.com/r/RntHpE/1
 babel_n_template = r'''
     \{\{                        # match {{
         (?:                     # non-capturing group
@@ -109,7 +115,13 @@ babel_n_template = r'''
         )*                      # 0 or multiple time the non-capturing group
         %s                      # Babel word to replace
         \-                      # match -
-        \d                      # match a single digit               
+        \d                      # match a single digit
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        \|                      # match a pipe             
         (?P<lang>               # named group <lang>
             [^{]*               # match anything but }, {{Babel | it | {{User en}} }} which are bad formatted are considered invalid
         )                       # end of the non-capturing group
