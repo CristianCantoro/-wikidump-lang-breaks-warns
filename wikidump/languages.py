@@ -448,9 +448,9 @@ iso639_languages = {
     "zul": "Zulu"
 }
 
-user_words = ["Userlinks", "Потребител", "کاربر", "Bruker", "Uiser", "ผู้ใช้", "Lankide", "Úsáideoir", "U", "Utent", "İstifadəçi", "Użytkownik", "Wužywaŕ", "Lietotājs", "ایشلدن", "Usor", "Uza-na'in", "User link", "User", "Kasutaja", "Корисник", "Usuario", "Utente", "Suradnik", "Uzanto2", "Wikipedista", "Naraguna", "Usuário2", "Thành viên", "Χρήστης", "Userinfo", "Kullanıcı", "Käyttäjä", "مس", "Ҡулланыусы", "Redaktor", "Benutzer", "Bruger", "Ulanyjy", "Uporabnik", "Pengguna", "प्रयोगकर्ता", "సభ్యుడు", "सदस्य", "Userlinks-rights", "Brukar", "کارور", "Szerkesztői linkek/hosszú", "بەکارھێنەر", "B", "ব্যবহারকারী", "Korisnik", "Utot", "کارن", "ܡܦܠܚܢܐ", "பயனர்", "Gebruikerlinks", "Anv-data"]
+user_words = ["utente", "korisnik", "uzanto2", "suradnik", "kullanıcı", "uporabnik", "naraguna", "பயனர்", "ผู้ใช้", "utot", "uiser", "bruker", "सदस्य", "usuario", "szerkesztői linkek/hosszú", "b", "wužywaŕ", "بەکارھێنەر", "userlinks-rights", "wikipedista", "ایشلدن", "корисник", "redaktor", "benutzer", "thành viên", "کاربر", "کارور", "user link", "usuário2", "brukar", "ҡулланыусы", "pengguna", "userinfo", "lietotājs", "anv-data", "utent", "użytkownik", "χρήστης", "u", "bruger", "प्रयोगकर्ता", "потребител", "uza-na'in", "ulanyjy", "kasutaja", "i̇stifadəçi", "gebruikerlinks", "ܡܦܠܚܢܐ", "ব্যবহারকারী", "user", "کارن", "مس", "userlinks", "usor", "úsáideoir", "lankide", "సభ్యుడు", "käyttäjä"]
 
-babel_words = ["Бабілёнская вежа", "Вавилон", "Babylon-jazyk", "Papela", "Babil", "Reo kaimahi", "بابئل", "Pēpeli", "Babelejo", "Málkassi-X", "Babîl", "Pâ-phe̍t", "Babilu-*", "Бабил", "babel", "Babel", "བྷི་པེལ།", "באבעל", "บาเบล", "بابل", "Boîte Babel", "ບາເບລ", "Βαβέλ", "Babilon", "Bouèta Babél", "Բաբելոն", "Boita Babel", "바벨"]
+babel_words = ["babel", "babelejo", "reo kaimahi", "བྷི་པེལ།", "บาเบล", "բաբելոն", "βαβέλ", "babil", "babîl", "papela", "ບາເບລ", "бабил", "بابئل", "바벨", "באבעל", "pēpeli", "boita babel", "babilon", "málkassi-x", "bouèta babél", "вавилон", "boîte babel", "babylon-jazyk", "бабілёнская вежа", "بابل", "babilu-*", "pâ-phe̍t"]
 
 """
 What I mean for:

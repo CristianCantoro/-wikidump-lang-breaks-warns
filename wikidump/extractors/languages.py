@@ -21,28 +21,117 @@ from .utils.language_utils_functions import (
 # exports 
 __all__ = ['language_knowledge', 'LanguageLevel', ]
 
-babel_standard_pattern = r'{{(?:\s|\_)*{Babel}[^\-](?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)(?:}}|$)'
-babel_extension_template = r'{{\s*#{babel}:(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|.)*?)*)}}'
-user_template_format = r'{{(?:\s|\_)*{User}(?:\s|\_)*(?P<lang>(?:[a-zA-Z]{{two}}|[a-zA-Z]{{three}})(\-(?:0|1|2|3|4|5|n)|))(?:}}|$)'
-babel_n_template = r'{{(?:\s|\_)*{Babel}\-\d(?:\s|\_)*(?P<lang>((?:\s|.)*?(?:{{!}}|{{=}}|)(?:\s|\_)*?)*)(?:}}|$)'
+# https://regex101.com/r/B2iULI/1
+babel_standard_pattern = r'''
+    \{\{                        # match {{
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        %s                      # Babel word to replace
+        [^\-]                   # not match a - , to esclude babel_standard_pattern from babel_n_template
+        (?P<lang>               # named group <lang>
+            [^{]*               # match anything but }, {{Babel | it | {{User en}} }} which are bad formatted are considered invalid
+        )                       # end named group
+    \}\}'''                     # match }}
+
+# https://regex101.com/r/OoyliH/1
+babel_extension_template = r'''
+    \{\{                        # match {{
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        \#                      # 
+        %s:                     # Babel word to replace
+        (?P<lang>               # named group <lang>
+            [^{]*               # match anything but }, {{Babel | it | {{User en}} }} which are bad formatted are considered invalid
+        )                       # end named group
+    \}\}'''                     # match }}
+
+# https://regex101.com/r/bVNcOu/1
+user_template_format = r'''
+    \{\{                        # match {{
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        %s                      # User word
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        (?P<lang>               # named group <lang>
+            (?:                 # non-capturing group
+                [a-zA-Z]{2}     # any alphabetical character repeated 2 times
+                |               # or
+                [a-zA-Z]{3}     # any alphabetical character repeated 3 times
+            )                   # close non capturing group
+            (?:                 # begin non capturing group                      
+                \-              # match -
+                (?:             # begin non capturing group     
+                    0
+                    |
+                    1
+                    |
+                    2
+                    |
+                    3
+                    |
+                    4
+                    |
+                    5
+                    |
+                    n           # mother tongue level
+                )
+                |               # or
+                                # match none
+            )
+            (?:                 # non-capturing group
+                \s              # match any spaces
+                |               # or
+                \_              # match underscore (count as space)
+            )*                   
+        )
+    \}\}'''                     # match }}
+
+# https://regex101.com/r/3z73BE/1
+babel_n_template = r'''
+    \{\{                        # match {{
+        (?:                     # non-capturing group
+            \s                  # match any spaces
+            |                   # or
+            \_                  # match underscore (count as space)
+        )*                      # 0 or multiple time the non-capturing group
+        %s                      # Babel word to replace
+        \-                      # match -
+        \d                      # match a single digit               
+        (?P<lang>               # named group <lang>
+            [^{]*               # match anything but }, {{Babel | it | {{User en}} }} which are bad formatted are considered invalid
+        )                       # end of the non-capturing group
+    \}\}'''                     # match }}
 
 FORMATTED_STANDARD_BABEL_REs = [
-    re.compile(babel_standard_pattern.format(Babel=b), re.I | re.U)
+    re.compile(babel_standard_pattern%(b), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for b in languages.babel_words
 ]
 
 FORMATTED_EXTENSION_BABEL_REs = [
-    re.compile(babel_extension_template.format(babel=b.lower()), re.I | re.U)
+    re.compile(babel_extension_template%(b.lower()), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for b in languages.babel_words
 ]
 
 FORMATTED_N_BABEL_REs = [
-    re.compile(babel_n_template.format(Babel=b), re.I | re.U)
+    re.compile(babel_n_template%(b), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for b in languages.babel_words
 ]
 
 FORMATTED_USER_TEMPLATE_REs = [
-    re.compile(user_template_format.format(User=u, two='2', three='3'), re.I | re.U)
+    re.compile(user_template_format%(u), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for u in languages.user_words
 ]
 
@@ -50,17 +139,19 @@ KNOWN_LANGUAGES_REs = FORMATTED_STANDARD_BABEL_REs + FORMATTED_EXTENSION_BABEL_R
 
 def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
     for pattern in KNOWN_LANGUAGES_REs:
-        print('Sto analizzando', pattern)
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_language_presence(match): # extract a named group called lang (basically it contains a single language if it's the user's mother tongue, otherwise lang-level)
                 raw_langs = match.group('lang')
                 if not raw_langs:
                     write_error(pattern, match)
                     return
-                parsed_languages = list(filter(None, raw_langs.strip().split('|'))) # retrieve the languages I am interested in for the user
+                parsed_languages = list(filter(None, 
+                    raw_langs.strip().replace('_', '') .split('|') # retrieve the languages I am interested in for the user, 
+                    # remove spaces, remove _ which count as spaces and split for parameters)
+                )) 
                 for langs in parsed_languages:
                     langs = langs.strip()
-                    l = langs.split('-', 1)
+                    l = langs.split('-', 1) # retrieve the couple language - level, if any level specified
                     if len(l) > 1:
                         if not is_level(l[1]):
                             write_error_level_not_recognized(match, l[1])
@@ -69,7 +160,7 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                     else:
                         level = LanguageLevel.MOTHER_TONGUE_LEVEL
                     
-                    if l[0] in languages.iso639_languages:
+                    if l[0] in languages.iso639_languages:  # is an iso639 language
                         lang_knowedge = LanguageLevel(languages.iso639_languages[l[0]], level)
                         yield CaptureResult(
                             data=(lang_knowedge), span=(match.start(), match.end())

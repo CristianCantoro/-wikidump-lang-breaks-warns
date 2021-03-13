@@ -14,7 +14,7 @@ if __name__ == "__main__":
     item_dict = item_dict.toJSON()
     cleaned_dict = set()
     for key in item_dict:
-        el = item_dict[key]['value'].encode('utf8').decode()
+        el = item_dict[key]['value'].lower().encode('utf8').decode()
         if ':' in el:
             el = el.split(':')[1]
         cleaned_dict.add(el)
