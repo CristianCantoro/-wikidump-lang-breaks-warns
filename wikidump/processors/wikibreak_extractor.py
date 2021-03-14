@@ -80,9 +80,7 @@ def extract_revisions(
         wikibreaks = [wikibreak for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text)]
 
         # Update stats
-        for wb in wikibreaks:
-            # TODO Update stats if necessary
-            pass
+        stats['wikibreaks']['templates'] += len(wikibreaks)
 
         # Build the revision
         rev = Revision(
@@ -160,13 +158,13 @@ def extract_pages(
         # Return only the pages with at least one wikibreak if the flag's active
         if only_pages_with_wikibreaks:
             if len(page.revisions) > 0:
-                stats['wikibreaks']['total'] += 1
+                stats['wikibreaks']['users'] += 1
                 yield page
         else:
-            stats['wikibreaks']['total'] += 1
+            stats['wikibreaks']['users'] += 1
             yield page
             
-        if stats['wikibreaks']['total'] == 10:
+        if stats['wikibreaks']['users'] == 10:
             break
         
         stats['performance']['pages_analyzed'] += 1
@@ -174,7 +172,7 @@ def extract_pages(
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
-        'extract_wikibreaks',
+        'extract-wikibreaks',
         help='Extract the languages known by the users',
     )
     parser.add_argument(
@@ -210,7 +208,8 @@ def main(
             'pages_analyzed': 0,
         },
         'wikibreaks': {
-            'total': 0,
+            'users': 0,
+            'templates': 0,  # templates encountered
         },
     }
 

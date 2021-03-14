@@ -1,6 +1,6 @@
 import regex as re
 from ..types.language_level import LanguageLevel
-from typing import Iterator
+from typing import Iterator, Generic, T
 
 def is_level(value: str) -> bool:
     if value.lower() == 'n':

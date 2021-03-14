@@ -170,7 +170,7 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
             else:
                 pass
 
-def check_language_presence(match: Iterator[re.Match]) -> bool:
+def check_language_presence(match) -> bool:
     """Checks if some group is present inside the match object"""
     try:
         match.group('lang')
