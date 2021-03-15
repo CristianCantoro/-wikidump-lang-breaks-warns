@@ -11,12 +11,12 @@ class Wikibreak:
     def to_dict(self) -> Mapping:
         """It converts the wikibreak class instance into a dictionary"""
         obj = dict()
-        obj['wikipause_name'] = self.wikipause_name
+        obj['wikibreak_name'] = self.wikipause_name
         obj['options'] = list()
         for opt in self.options:
-            obj['languages'].append(opt.to_dict())
+            obj['options'].append(opt)
         return obj
 
-    def __repr__(self) -> str: # TODO
+    def __repr__(self) -> str:
         return 'wikipause_name: {}; options {}'.format(
             self.wikipause_name, self.options)

@@ -17,11 +17,12 @@ MonkeyPatch.patch_fromisoformat()
 
 class Revision:
     """Class which represent a revision of the user page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, languages: Iterable[extractors.languages.LanguageLevel]):
-        self.id = id                    # revision id
-        self.user = user                # revision user
-        self.timestamp = timestamp      # revision timestamp
-        self.languages = languages      # set of the languages associated with the user in that revision of his or her user page
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, languages: Iterable[extractors.languages.LanguageLevel], num_langs_known: int):
+        self.id = id                            # revision id
+        self.user = user                        # revision user
+        self.timestamp = timestamp              # revision timestamp
+        self.languages = languages              # set of the languages associated with the user in that revision of his or her user page
+        self.num_langs_known = num_langs_known  # number of language known by the user
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -37,11 +38,12 @@ class Revision:
 
 class Page:
     """Class which represent a page containing a list of revisions"""
-    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision]):
-        self.id = id                # page id
-        self.namespace = namespace  # page namespace
-        self.title = title          # page title
-        self.revisions = revisions  # list of revisions
+    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision], num_langs_known: int):
+        self.id = id                            # page id
+        self.namespace = namespace              # page namespace
+        self.title = title                      # page title
+        self.revisions = revisions              # list of revisions
+        self.num_langs_known = num_langs_known  # number of languages known
 
     def to_dict(self) -> Mapping:
         """Converts the object instance into a dictionary"""
@@ -95,7 +97,8 @@ def extract_revisions(
             id=mw_revision.id,
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
-            languages=languages
+            languages=languages,
+            num_langs_known=len(languages)
         )
 
         # Check the oldest revisions possible
@@ -152,22 +155,25 @@ def extract_pages(
             only_revisions_with_languages=only_revisions_with_languages
         )
 
+        revisions_list = list(revisions_generator)
+
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
-            revisions=list(revisions_generator),
+            revisions=revisions_list,
+            num_langs_known=sum(rev.num_langs_known for rev in revisions_list)
         )
 
         # Return only the pages with at least one language if the flag's active
         if only_pages_with_languages:
-            if len(page.revisions) > 0:
+            if page.num_langs_known > 0:
                 stats['users']['total'] += 1
                 yield page
         else:
             stats['users']['total'] += 1
             yield page
-    
+
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):

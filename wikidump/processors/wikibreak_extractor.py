@@ -16,21 +16,25 @@ MonkeyPatch.patch_fromisoformat()
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the user page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, text: str, wikibreaks: Iterable[extractors.wikibreaks.Wikibreak]):
-        self.id = id                    # revision id
-        self.user = user                # revision user
-        self.timestamp = timestamp      # revision timestamp
-        self.text = text                # revision text content
-        self.wikibreaks = wikibreaks    # set of wikibreaks
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, wikibreaks: Iterable[extractors.wikibreaks.Wikibreak], num_wikibreaks: int):
+        self.id = id                            # revision id
+        self.user = user                        # revision user
+        self.timestamp = timestamp              # revision timestamp
+        self.wikibreaks = wikibreaks            # set of wikibreaks
+        self.num_wikibreaks = num_wikibreaks    # number of wikibreaks
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
         obj = dict()
         obj['id'] = self.id
-        obj['user_id'] = self.user.id
-        obj['user_name'] = self.user.text
+        user_id = ''
+        user_name = ''
+        if self.user:
+            user_id = self.user.id
+            user_name = self.user.text
+        obj['user_id'] = user_id
+        obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
-        obj['text'] = self.text
         obj['wikibreaks'] = list()
         for w_b in self.wikibreaks:
             obj['wikibreaks'].append(w_b.to_dict())
@@ -38,11 +42,12 @@ class Revision:
 
 class Page:
     """Class which represent a page containing a list of revisions"""
-    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision]):
-        self.id = id                # page id
-        self.namespace = namespace  # page namespace
-        self.title = title          # page title
-        self.revisions = revisions  # list of revisions
+    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision], num_wikibreaks: int):
+        self.id = id                            # page id
+        self.namespace = namespace              # page namespace
+        self.title = title                      # page title
+        self.revisions = revisions              # list of revisions
+        self.num_wikibreaks = num_wikibreaks    # number of wikibreaks
 
     def to_dict(self) -> Mapping:
         """Converts the object instance into a dictionary"""
@@ -76,7 +81,7 @@ def extract_revisions(
         # remove html comments
         text = utils.remove_comments(mw_revision.text or '')
 
-        # It extracts a TODO about wikibreks
+        # It extracts a the wikibreak name and its parameters
         wikibreaks = [wikibreak for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text)]
 
         # Update stats
@@ -87,8 +92,8 @@ def extract_revisions(
             id=mw_revision.id,
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
-            text=mw_revision.text,
-            wikibreaks=wikibreaks
+            wikibreaks=wikibreaks,
+            num_wikibreaks=len(wikibreaks)
         )
 
         # Check the oldest revisions possible
@@ -134,11 +139,8 @@ def extract_pages(
         utils.log("Processing", mw_page.title)
         
         # Skip non-(user pages or ser talk page), according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
-        if mw_page.namespace != 2:
-            utils.log('Skipped (namespace != 2)')
-            continue
-        elif mw_page.namespace != 3:
-            utils.log('Skipped (namespace != 3)')
+        if mw_page.namespace != 2 and mw_page.namespace != 3:
+            utils.log('Skipped (namespace != 2 and namespace != 3)')
             continue
         
         revisions_generator = extract_revisions(
@@ -148,25 +150,28 @@ def extract_pages(
             only_revisions_with_wikibreaks=only_revisions_with_wikibreaks
         )
 
+        revisions_list = list(revisions_generator)
+
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
-            revisions=list(revisions_generator),
+            revisions=revisions_list,
+            num_wikibreaks=sum(rev.num_wikibreaks for rev in revisions_list)
         )
 
         # Return only the pages with at least one wikibreak if the flag's active
         if only_pages_with_wikibreaks:
-            if len(page.revisions) > 0:
+            if page.num_wikibreaks > 0:
                 stats['wikibreaks']['users'] += 1
                 yield page
         else:
             stats['wikibreaks']['users'] += 1
             yield page
-            
-        if stats['wikibreaks']['users'] == 10:
-            break
         
+        # if stats['wikibreaks']['templates'] > 0:
+        #    break
+    
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):
@@ -208,8 +213,8 @@ def main(
             'pages_analyzed': 0,
         },
         'wikibreaks': {
-            'users': 0,
-            'templates': 0,  # templates encountered
+            'users': 0,      # users that have specified a wikibreak at least one time during their wikilife
+            'templates': 0,  # templates encountered, in any revision of any user
         },
     }
 

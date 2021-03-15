@@ -4,18 +4,7 @@ import collections
 from wikidump.extractors import wikibreaks
 
 INPUT_TEXT = '''
-{{wikipausa
-|ciao
-|message=Joe|
-type =
-come 
-va|
-back = tutto bene
-}}
-
-{{wikibreak}}
-{{wikibreak |Joe|1=Doe|name=John|ciao}}
-{{viquidescans||el 30 de febrer del 2007}}
+{{Viquidescans|llarg|discrepàncies}}
 '''
 
 EXPECTED_LANGS = 4

@@ -147,7 +147,8 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                     parsed_options = match.group('options').strip().replace('_', '') .split('|') # retrieve the options
                     # remove spaces, remove _ which count as spaces and split for parameters)
                     # Assign the parsed options to the wikipause_obj
-                    wikipause_obj.options.extend(parsed_options)
+                    if not (len(parsed_options) == 1 and parsed_options[0] == ''):
+                        wikipause_obj.options.extend(parsed_options)
 
                 yield CaptureResult(
                     data=(wikipause_obj), span=(match.start(), match.end())
