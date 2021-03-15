@@ -116,22 +116,22 @@ babel_n_template = r'''
     \}\}'''                     # match }}
 
 FORMATTED_STANDARD_BABEL_REs = [
-    re.compile(babel_standard_pattern%(b), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
+    re.compile(babel_standard_pattern%(b.replace(' ', '\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for b in languages.babel_words
 ]
 
 FORMATTED_EXTENSION_BABEL_REs = [
-    re.compile(babel_extension_template%(b.lower()), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
+    re.compile(babel_extension_template%(b.replace(' ', '\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for b in languages.babel_words
 ]
 
 FORMATTED_N_BABEL_REs = [
-    re.compile(babel_n_template%(b), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
+    re.compile(babel_n_template%(b.replace(' ', '\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for b in languages.babel_words
 ]
 
 FORMATTED_USER_TEMPLATE_REs = [
-    re.compile(user_template_format%(u), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
+    re.compile(user_template_format%(u.replace(' ', '\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE)
     for u in languages.user_words
 ]
 

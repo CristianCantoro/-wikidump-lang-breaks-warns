@@ -117,12 +117,12 @@ all_wikibreaks_words = wikibreak_back_not_words + \
     wikibreak_other_words
 
 WIKIBREAKS_PATTERN_REs = [ 
-    re.compile(wikibreak_pattern%(w_word.lower()), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE) 
+    re.compile(wikibreak_pattern%(w_word.replace(' ', '\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE) 
     for w_word in all_wikibreaks_words
 ]
 
 WIKIBREAKS_EMPTY_PATTERN_REs = [
-    re.compile(wikibreak_empty_pattern%(w_word.lower()), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE) 
+    re.compile(wikibreak_empty_pattern%(w_word.replace(' ', '\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE) 
     for w_word in all_wikibreaks_words
 ]
 
@@ -145,6 +145,8 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                 if check_options(match):
                     # parse the options
                     parsed_options = match.group('options').strip().replace('_', '') .split('|') # retrieve the options
+                    # threat differently the wikilinks in it
+                    parsed_options = adjust_wikilinks(parsed_options)
                     # remove spaces, remove _ which count as spaces and split for parameters)
                     # Assign the parsed options to the wikipause_obj
                     if not (len(parsed_options) == 1 and parsed_options[0] == ''):
@@ -153,6 +155,41 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                 yield CaptureResult(
                     data=(wikipause_obj), span=(match.start(), match.end())
                 )
+
+def adjust_wikilinks(words_list: Iterable[str]) -> Iterable[str]:
+    """
+    Simple wikilinks detector and handler for cases where there are wikilinks in wikibreaks
+    E.g:
+    {{wikibreak|[[User:Foo|Foobar]]|motivation}}
+    The options should be parsed as:
+    1) [[Uesr:Foo|Foobar]] # wikilink detected!
+    2) motivation
+    """
+    open_link = False
+    start_index = 0
+    counter = 0
+    to_rtn = []
+    while counter < len(words_list):
+        if open_link:
+            if ']]' in words_list[counter]:
+                open_link = False
+                to_rtn.append(concatenate_list_values(words_list, start_index, counter, '|'))
+        elif '[[' in words_list[counter] and not ']]' in words_list[counter]:
+            start_index = counter
+            open_link = True
+        else:
+            to_rtn.append(words_list[counter])
+        counter += 1
+    if open_link:
+        to_rtn.append(concatenate_list_values(words_list, start_index, counter - 1, '|'))
+    return to_rtn
+
+def concatenate_list_values(elem_list: Iterable[str], from_index: int, to_index, concatenate_value: str) -> str:
+    """Concatenates element in a list of strings starting from a starting index until the end index (included) with a custom separator"""
+    result = elem_list[from_index] 
+    for i in range(from_index + 1, to_index + 1):
+        result += '{}{}'.format(concatenate_value, elem_list[i])
+    return result
 
 def check_options(match: Iterator[re.Match]) -> bool:
     """Checks if some groups is present inside the match object"""

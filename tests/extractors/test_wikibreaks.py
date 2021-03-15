@@ -4,8 +4,13 @@ import collections
 from wikidump.extractors import wikibreaks
 
 INPUT_TEXT = '''
-{{Viquidescans|llarg|discrepàncies}}
+{{wikibreak|[[Io sono un link|bellissimo!|come va|sample text]]|[[discrepàncies|ciao|]] devo essere incluso!| io sto tutto apposto grazie}}
+{{viquidescansas|samuele|epic}}
+{{occupato|sono in sessione}}
+{{tentata wikipausa}}
 '''
+
+# TODO wikipausa corta non detected
 
 EXPECTED_LANGS = 4
 
