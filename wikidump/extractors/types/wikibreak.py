@@ -4,7 +4,7 @@ class Wikibreak:
     """Class which stores the possible attributes, if any, of a Wikipause object"""
 
     """The set of relevants attribute of the wikibreak"""
-    def __init__(self, wikipause_name: str, options: Iterable[str]):
+    def __init__(self, wikipause_name: str, options: Mapping):
         self.wikipause_name = wikipause_name.strip().lower()
         self.options = options
 
@@ -12,9 +12,7 @@ class Wikibreak:
         """It converts the wikibreak class instance into a dictionary"""
         obj = dict()
         obj['wikibreak_name'] = self.wikipause_name
-        obj['options'] = list()
-        for opt in self.options:
-            obj['options'].append(opt)
+        obj['options'] = self.options   # TODO see if it works
         return obj
 
     def __repr__(self) -> str:

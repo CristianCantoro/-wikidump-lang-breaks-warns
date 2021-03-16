@@ -6,11 +6,10 @@ from wikidump.extractors import wikibreaks
 INPUT_TEXT = '''
 {{wikibreak|[[Io sono un link|bellissimo!|come va|sample text]]|[[discrepàncies|ciao|]] devo essere incluso!| io sto tutto apposto grazie}}
 {{viquidescansas|samuele|epic}}
-{{occupato|sono in sessione}}
+{{occupato||sono in sessione||}}
 {{tentata wikipausa}}
+{{wikipausa corta|name=Samuele|ciao|come va|type=epico|back=10/10/2020}}
 '''
-
-# TODO wikipausa corta non detected
 
 EXPECTED_LANGS = 4
 

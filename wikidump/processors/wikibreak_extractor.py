@@ -234,4 +234,3 @@ def main(
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
     stats_output_h.write(json.dumps(stats, indent=4, default=str))
-    stats_output_h.write("\n")

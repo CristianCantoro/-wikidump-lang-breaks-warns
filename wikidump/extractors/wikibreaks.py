@@ -18,6 +18,16 @@ from .utils.language_utils_functions import (
     is_level
 )
 
+# NOTE
+# Strange behaviours: 
+# {{wikibreak|name=Samuele|Mario}}, only Samuele is displayed
+# {{wikibreak|Samuele|Mario}}, while in this case Mario is considered as a back value
+# So remember, the positional arguments are weaker than the named ones
+# {{wikibreak|name=Samuele|ciao|come va|type=epico|back=10/10/2020|lol}}
+# Seen as
+# name          name pos   1(ov) 2(ov)                              3
+# Where ov means overridden
+
 # exports 
 __all__ = ['wikibreaks_extractor', 'Wikibreak', ]
 
@@ -139,7 +149,7 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                     return
                 
                 # Wikipause object: basically the name and the list of options
-                wikipause_obj = Wikibreak(wiki_name, list())
+                wikipause_obj = Wikibreak(wiki_name, dict())
 
                 # Parse the options if any
                 if check_options(match):
@@ -147,10 +157,27 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                     parsed_options = match.group('options').strip().replace('_', '') .split('|') # retrieve the options
                     # threat differently the wikilinks in it
                     parsed_options = adjust_wikilinks(parsed_options)
-                    # remove spaces, remove _ which count as spaces and split for parameters)
-                    # Assign the parsed options to the wikipause_obj
+
+                    # Counter for positional arguments
+                    positional_counter = 1  # NOTE: starting from 1, as the first argument is 1 in the wikimarkup
+
+                    # if no options are provided (note empty options means {{wikibreak}} and not {{wikibreak|}} nor {{wikibreak||}})
+                    # those last two are considered as options are actually passed
                     if not (len(parsed_options) == 1 and parsed_options[0] == ''):
-                        wikipause_obj.options.extend(parsed_options)
+                        # loop over all the parsed options
+                        for opt in parsed_options:
+                            # Splitting for namedparameters -> note there is no way I can store all the possibile way to call a parameter, 
+                            # due to lack of documentation and other things
+                            name_value = opt.split('=', 1)
+                            # Key and value for the option entry in the dictionary
+                            key = positional_counter
+                            value = name_value
+                            if len(name_value) > 1:
+                                key, value = name_value
+                            else:
+                                positional_counter += 1
+                            # Assign the parsed options to the wikipause_obj
+                            wikipause_obj.options[key] = value  # overritten in case of the same name of the parameters
 
                 yield CaptureResult(
                     data=(wikipause_obj), span=(match.start(), match.end())

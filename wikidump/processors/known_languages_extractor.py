@@ -31,6 +31,7 @@ class Revision:
         obj['user_id'] = self.user.id
         obj['user_name'] = self.user.text
         obj['timestamp'] = self.timestamp
+        obj['num_languages_declared'] = self.num_langs_known
         obj['languages'] = list()
         for lang in self.languages:
             obj['languages'].append(lang.to_dict())
@@ -56,6 +57,16 @@ class Page:
             obj['revisions'].append(rev.to_dict())
         return obj
 
+def count_languages_occurences(language_knowledge_levels_list: Iterable[extractors.languages.LanguageLevel]) -> int:
+    """Count the unique names of the languages stored in language_knowledge_levels_list list"""
+    langs_set = set()
+    counter = 0
+    for lang_knowledge in language_knowledge_levels_list:
+        if not lang_knowledge.lang in langs_set:
+            counter += 1
+            langs_set.add(lang_knowledge.lang)
+    return counter
+
 def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
@@ -80,6 +91,9 @@ def extract_revisions(
         # It extracts a list of LanguageLevel instances, composed of (languages and it's level)
         languages = [lang for lang, _ in extractors.languages.language_knowledge(text)]
 
+        # number of languages that the user said they know
+        num_langs_known = count_languages_occurences(languages)
+
         # Update stats
         if not only_last_revision or (only_last_revision and is_last_revision):
             for l in languages:
@@ -98,7 +112,7 @@ def extract_revisions(
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
             languages=languages,
-            num_langs_known=len(languages)
+            num_langs_known=num_langs_known
         )
 
         # Check the oldest revisions possible
@@ -215,8 +229,9 @@ def main(
             'pages_analyzed': 0,
         },
         'users': {
-            'total': 0,
-            'languages': dict(),
+            'total': 0,                             # total number of users who have declared to know at least one language
+            'languages': dict(),                    # dictionary of languages and the level of knowledge associated
+            'num_unique_languages': 0,        # total number of different and unique languages known by all analyzed users 
         },
     }
 
@@ -230,10 +245,12 @@ def main(
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
+    # Number of unique languages known
+    stats['users']['num_unique_languages'] = len(stats['users']['languages'])
+
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+        features_output_h.write(json.dumps(obj.to_dict()))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
     stats_output_h.write(json.dumps(stats, indent=4, default=str))
-    stats_output_h.write("\n")
