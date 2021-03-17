@@ -16,12 +16,15 @@ MonkeyPatch.patch_fromisoformat()
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the user page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, wikibreaks: Iterable[extractors.wikibreaks.Wikibreak], num_wikibreaks: int):
-        self.id = id                            # revision id
-        self.user = user                        # revision user
-        self.timestamp = timestamp              # revision timestamp
-        self.wikibreaks = wikibreaks            # set of wikibreaks
-        self.num_wikibreaks = num_wikibreaks    # number of wikibreaks
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, wikibreaks: Iterable[extractors.wikibreaks.Wikibreak], 
+        num_wikibreaks: int, at_least_one_parameter: bool, template_occurences: Mapping):
+        self.id = id                                                # revision id
+        self.user = user                                            # revision user
+        self.timestamp = timestamp                                  # revision timestamp
+        self.wikibreaks = wikibreaks                                # set of wikibreaks
+        self.num_wikibreaks = num_wikibreaks                        # number of wikibreaks
+        self.at_least_one_parameter = at_least_one_parameter        # boolean value which tells if contains a wikibreak with at least a parameter
+        self.template_occurences = template_occurences              # categories and subcategories of the templates used and a boolean value if they have parameters or not
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -82,10 +85,26 @@ def extract_revisions(
         text = utils.remove_comments(mw_revision.text or '')
 
         # It extracts a the wikibreak name and its parameters
-        wikibreaks = [wikibreak for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text)]
+        wikibreaks = list()
+        at_least_one_parameter_template_counter = 0      # number of parametrized templates
+        template_occurences = dict()                     # template category and subcategory and if they have a parameter or not
+
+        for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text):
+            wikibreaks.append(wikibreak)
+            at_least_one_parameter_template_counter += int(wikibreak.at_least_one_parameter)    # count the number of parametrized templates
+            for category in wikibreak.wikibreak_category:
+                if not category in template_occurences:
+                    template_occurences[category] = { 'at_least_a_parameter': False, 'is_category': True} # add the category
+                # save the category and if they come at least one time parametrized
+                template_occurences[category]['at_least_a_parameter'] = template_occurences[category]['at_least_a_parameter'] or wikibreak.at_least_one_parameter   
+            if not wikibreak.wikibreak_subcategory in template_occurences:
+                template_occurences[wikibreak.wikibreak_subcategory] = { 'at_least_a_parameter': False, 'is_category': False }
+            # save the subcategory and if they come at least one time parametrized
+            template_occurences[wikibreak.wikibreak_subcategory]['at_least_a_parameter']= template_occurences[wikibreak.wikibreak_subcategory]['at_least_a_parameter'] or wikibreak.at_least_one_parameter
 
         # Update stats
         stats['wikibreaks']['templates'] += len(wikibreaks)
+        stats['wikibreaks']['templates_at_least_one_parameter'] += at_least_one_parameter_template_counter
 
         # Build the revision
         rev = Revision(
@@ -93,7 +112,9 @@ def extract_revisions(
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
             wikibreaks=wikibreaks,
-            num_wikibreaks=len(wikibreaks)
+            num_wikibreaks=len(wikibreaks),
+            at_least_one_parameter=(at_least_one_parameter_template_counter > 0),
+            template_occurences=template_occurences
         )
 
         # Check the oldest revisions possible
@@ -152,13 +173,44 @@ def extract_pages(
 
         revisions_list = list(revisions_generator)
 
+        num_wikibreaks = 0  # number of wikibreaks
+        users_at_least_parameter = False    # the user has at least a template with at least a parameter
+        categories_occurences = dict()      # categories and subcategories dictionary. It contains the number of user who have used them and the number of user who have used them with at leas a parameter
+        for rev in revisions_list:
+            # number of wikibreaks
+            num_wikibreaks += rev.num_wikibreaks
+            # if this is a user who have been in wikipause and has specified the 
+            users_at_least_parameter = users_at_least_parameter or rev.at_least_one_parameter
+            # update stats related to the occurrences of a category or a template (calculated per user)
+            for category in rev.template_occurences:
+                if not category in categories_occurences:
+                    categories_occurences[category] = {'total': False, 'with_params': False, 'is_category': rev.template_occurences[category]['is_category']}
+                # total number of users who have been on wikibreak using that wikibreak category at least once 
+                categories_occurences[category]['total'] = True          
+                # total number of users who have been on wikibreak using that wikibreak category at least once with at least a parameter                                                                                   
+                categories_occurences[category]['with_params'] = categories_occurences[category]['with_params'] or rev.template_occurences[category]['at_least_a_parameter']
+
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
             revisions=revisions_list,
-            num_wikibreaks=sum(rev.num_wikibreaks for rev in revisions_list)
+            num_wikibreaks=num_wikibreaks
         )
+
+        # stats update
+        stats['wikibreaks']['users_at_least_parameter'] += int(users_at_least_parameter)
+        for category in categories_occurences:
+            if categories_occurences[category]['is_category']:
+                if not category in stats['wikibreaks']['user_categories_occurences']:
+                    stats['wikibreaks']['user_categories_occurences'][category] = {'total': False, 'with_params': False}
+                stats['wikibreaks']['user_categories_occurences'][category]['total'] += int(categories_occurences[category]['total'])
+                stats['wikibreaks']['user_categories_occurences'][category]['with_params'] += int(categories_occurences[category]['with_params'])
+            else:
+                if not category in stats['wikibreaks']['user_subcategories_occurences']:
+                    stats['wikibreaks']['user_subcategories_occurences'][category] = {'total': False, 'with_params': False}
+                stats['wikibreaks']['user_subcategories_occurences'][category]['total'] += int(categories_occurences[category]['total'])
+                stats['wikibreaks']['user_subcategories_occurences'][category]['with_params'] += int(categories_occurences[category]['with_params'])
 
         # Return only the pages with at least one wikibreak if the flag's active
         if only_pages_with_wikibreaks:
@@ -166,11 +218,9 @@ def extract_pages(
                 stats['wikibreaks']['users'] += 1
                 yield page
         else:
-            stats['wikibreaks']['users'] += 1
+            if page.num_wikibreaks > 0:
+                stats['wikibreaks']['users'] += 1
             yield page
-        
-        # if stats['wikibreaks']['templates'] > 0:
-        #    break
     
         stats['performance']['pages_analyzed'] += 1
 
@@ -213,8 +263,12 @@ def main(
             'pages_analyzed': 0,
         },
         'wikibreaks': {
-            'users': 0,      # users that have specified a wikibreak at least one time during their wikilife
-            'templates': 0,  # templates encountered, in any revision of any user
+            'users': 0,                                 # users that have specified a wikibreak or other similiar templates at least one time during their wikilife
+            'users_at_least_parameter': 0,              # users that have specified a wikibreak or other similar templates least one time during their wikilife with at least one parameter
+            'templates': 0,                             # wikibreaks or similar templates encountered, in any revision of any user
+            'templates_at_least_one_parameter': 0,      # wikibreaks or similar templates encountered, in any revision of any user, with at least one parameter
+            'user_categories_occurences': dict(),       # category dictionary. It contains the number of user who have used them and the number of user who have used them with at leas a parameter
+            'user_subcategories_occurences': dict(),    # subcategories dictionary. It contains the number of user who have used them and the number of user who have used them with at leas a parameter
         },
     }
 
@@ -229,7 +283,7 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+        features_output_h.write(json.dumps(obj.to_dict()))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()

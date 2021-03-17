@@ -8,6 +8,9 @@ INPUT_TEXT = '''
 {{viquidescansas|samuele|epic}}
 {{occupato||sono in sessione||}}
 {{tentata wikipausa}}
+{{Exàmens|a}}
+{{Exàmens|lol=a}}
+{{user stress}}
 {{wikipausa corta|name=Samuele|ciao|come va|type=epico|back=10/10/2020}}
 '''
 
@@ -16,7 +19,8 @@ EXPECTED_LANGS = 4
 def wikibreaks_extractor():
     wbreaks = list(wb for wb,_ in wikibreaks.wikibreaks_extractor(INPUT_TEXT))
     for w_b in wbreaks:
-        print(w_b, '\n')
+        print(w_b)
+        print(w_b.to_dict(), '\n')
 
 if __name__ == "__main__":
     wikibreaks_extractor()

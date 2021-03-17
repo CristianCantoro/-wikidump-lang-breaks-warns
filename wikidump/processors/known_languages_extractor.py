@@ -188,6 +188,10 @@ def extract_pages(
             stats['users']['total'] += 1
             yield page
 
+        # TO REMOVE
+        if stats['users']['total'] > 0:
+            break
+
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):
@@ -246,7 +250,10 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     # Number of unique languages known
-    stats['users']['num_unique_languages'] = len(stats['users']['languages'])
+    print('Ci arrivooooo')
+    print(type(stats['users']['languages']))
+    print(len(stats['users']['languages']))
+    stats['users']['flex'] = len(stats['users']['languages'])
 
     for obj in pages_generator:
         features_output_h.write(json.dumps(obj.to_dict()))

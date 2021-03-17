@@ -149,7 +149,11 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                     return
                 
                 # Wikipause object: basically the name and the list of options
-                wikipause_obj = Wikibreak(wiki_name, dict())
+                wiki_name = wiki_name.lower()
+                wikimap = wikibreaks.wikibreak_fields_to_tuple_category_subcategory[wiki_name]
+                wiki_category = wikimap['category']
+                wiki_sub_category = wikimap['subcategory']
+                wikibreak_obj = Wikibreak(wiki_name, wiki_category, wiki_sub_category, dict(), False)
 
                 # Parse the options if any
                 if check_options(match):
@@ -171,16 +175,18 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                             name_value = opt.split('=', 1)
                             # Key and value for the option entry in the dictionary
                             key = positional_counter
-                            value = name_value
+                            value = name_value[0]
                             if len(name_value) > 1:
                                 key, value = name_value
                             else:
                                 positional_counter += 1
-                            # Assign the parsed options to the wikipause_obj
-                            wikipause_obj.options[key] = value  # overritten in case of the same name of the parameters
+                            # Assign the parsed options to the wikibreak_obj
+                            wikibreak_obj.options[key] = value  # overritten in case of the same name of the parameters
+                        # at least one parameter found
+                        wikibreak_obj.at_least_one_parameter = True
 
                 yield CaptureResult(
-                    data=(wikipause_obj), span=(match.start(), match.end())
+                    data=(wikibreak_obj), span=(match.start(), match.end())
                 )
 
 def adjust_wikilinks(words_list: Iterable[str]) -> Iterable[str]:
