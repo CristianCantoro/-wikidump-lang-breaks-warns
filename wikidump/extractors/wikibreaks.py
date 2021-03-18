@@ -158,9 +158,9 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                 # Parse the options if any
                 if check_options(match):
                     # parse the options
-                    parsed_options = match.group('options').strip().replace('_', '') .split('|') # retrieve the options
+                    parsed_options = match.group('options').strip().replace('_', '') # retrieve the options
                     # threat differently the wikilinks in it
-                    parsed_options = adjust_wikilinks(parsed_options)
+                    parsed_options = split_and_adjust_wikilinks(parsed_options)
 
                     # Counter for positional arguments
                     positional_counter = 1  # NOTE: starting from 1, as the first argument is 1 in the wikimarkup
@@ -189,7 +189,8 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                     data=(wikibreak_obj), span=(match.start(), match.end())
                 )
 
-def adjust_wikilinks(words_list: Iterable[str]) -> Iterable[str]:
+# https://stackoverflow.com/questions/42070323/split-on-spaces-not-inside-parentheses-in-python
+def split_and_adjust_wikilinks(sentence: str, separator: str = "|", lparen: str = "[", rparen:str = "]") -> Iterable[str]:
     """
     Simple wikilinks detector and handler for cases where there are wikilinks in wikibreaks
     E.g:
@@ -197,25 +198,21 @@ def adjust_wikilinks(words_list: Iterable[str]) -> Iterable[str]:
     The options should be parsed as:
     1) [[Uesr:Foo|Foobar]] # wikilink detected!
     2) motivation
+    And should also be individuated the following:
+    name|[[26 agosto]],''[[Villasimius|a Villasimius]]'',[[Austria |a Vienna]] .
     """
-    open_link = False
-    start_index = 0
-    counter = 0
-    to_rtn = []
-    while counter < len(words_list):
-        if open_link:
-            if ']]' in words_list[counter]:
-                open_link = False
-                to_rtn.append(concatenate_list_values(words_list, start_index, counter, '|'))
-        elif '[[' in words_list[counter] and not ']]' in words_list[counter]:
-            start_index = counter
-            open_link = True
-        else:
-            to_rtn.append(words_list[counter])
-        counter += 1
-    if open_link:
-        to_rtn.append(concatenate_list_values(words_list, start_index, counter - 1, '|'))
-    return to_rtn
+    nb_brackets = 0
+    sentence = sentence.strip(separator) # get rid of leading/trailing seps
+    l = [0]
+    for i,c in enumerate(sentence):
+        if c == lparen:
+            nb_brackets += 1
+        elif c == rparen:
+            nb_brackets -= 1
+        elif c == separator and nb_brackets == 0:
+            l.append(i)
+    l.append(len(sentence))
+    return([sentence[i:j].strip(separator) for i,j in zip(l,l[1:])])
 
 def concatenate_list_values(elem_list: Iterable[str], from_index: int, to_index, concatenate_value: str) -> str:
     """Concatenates element in a list of strings starting from a starting index until the end index (included) with a custom separator"""

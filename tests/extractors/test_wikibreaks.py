@@ -12,6 +12,10 @@ INPUT_TEXT = '''
 {{Exàmens|lol=a}}
 {{user stress}}
 {{wikipausa corta|name=Samuele|ciao|come va|type=epico|back=10/10/2020}}
+{{vacanze|[[Utente:Eltharion|Eltharion]]|\'\'\'3 agosto\'\'\'...forse ;)}}
+{{occupato|Prova|[|non worko[26 novembre]], [x | kik] di ritorno dalle sue vacanze al mare 
+''[[Trento|a Trento]]'', per poi ripartire due giorni dopo ed andare [[Svizzera 
+|a Zurigo]] da cui ritornerò il giorno [[8 dicembre]] su Wikipedia definitivamente .}}
 '''
 
 EXPECTED_LANGS = 4
