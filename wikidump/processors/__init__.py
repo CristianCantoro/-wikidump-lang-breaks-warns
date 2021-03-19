@@ -8,5 +8,6 @@ from . import (
     sections_counter,
     wikilink_extractor,
     known_languages_extractor,
-    wikibreak_extractor
+    wikibreak_extractor,
+    user_warning_templates
 )
