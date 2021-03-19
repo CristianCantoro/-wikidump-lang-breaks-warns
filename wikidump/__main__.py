@@ -97,7 +97,6 @@ def get_args():
     processors.wikilink_extractor.configure_subparsers(subparsers)
     processors.known_languages_extractor.configure_subparsers(subparsers)
     processors.wikibreak_extractor.configure_subparsers(subparsers)
-    processors.wikibreak_extractor.configure_subparsers(subparsers)
     processors.user_warning_templates.configure_subparsers(subparsers)
 
     parsed_args = parser.parse_args()
