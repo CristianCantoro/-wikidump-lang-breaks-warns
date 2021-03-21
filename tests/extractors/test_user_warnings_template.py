@@ -16,7 +16,7 @@ Per favore, rispetta il lavoro altrui: segui le [[Aiuto:Cosa mettere su Wikipedi
 === Template correlati ===
 * [[Wikipedia:Gestione del vandalismo#Template di avviso]]
 * [[Template:Rc]]
-
+{{subst: Benvenuto}}
 [[Categoria:Template vandalismo|Yc]]
 </noinclude>
 """

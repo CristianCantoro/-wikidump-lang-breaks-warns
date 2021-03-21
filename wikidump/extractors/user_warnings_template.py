@@ -10,6 +10,8 @@ import regex as re
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping
 from .common import CaptureResult, Identifier, Span
 from .types.user_warning_template import UserWarningTemplate
+# Beautiful soup
+from bs4 import BeautifulSoup
 
 # exports 
 __all__ = ['userwarnings_regex_extractor', 'UserWarningTemplate']
@@ -19,68 +21,165 @@ parameters_pattern_escaped = re.compile(
 r'''
     \\\{\\\{\\\{            # match \{\{\{
         (?P<options>        # named group options
-            [^{]*           # match anything but closed curly brakets
+            [^\{]*          # match anything but closed curly brakets
         )                   # end of the named group
     \\\}\\\}\\\}            # match \}\}\}
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
-# TODO see what happens if there are multiple <includeonly> or <onlyinclude>
+subst_pattern_escaped = re.compile(
+r'''
+    \\\{\\\{
+        (?:
+            \s
+            |
+            _
+        )*
+        subst:
+        (?P<pattern_name>
+            [^\{]*
+        )
+    \\\}\\\}
+''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
+# TODO there could also be a chain of substitution
+
+"""
+https://en.wikipedia.org/w/index.php?title=Template:Template_sandbox&action=edit
+https://en.wikipedia.org/w/index.php?title=Draft:Sandbox&action=edit
+
+<onlyinclude>This is a sample template</onlyinclude>
+<onlyinclude><includeonly>This is a sample template</includeonly> part 2</onlyinclude>
+<includeonly>Hi there</includeonly>
+
+Output: This is a sample template This is a sample template part 2 -> so as the wiki said the includeonly outside the onlyinclude will be ignored
+Also, the onlyinclude will be concatenated if there are multiple
+Test: passed
+
+<includeonly>This is a sample template</includeonly>
+<includeonly><includeonly>This is a sample template</includeonly> part 2</includeonly>
+<includeonly>Hi there</includeonly>
+
+Output: This is a sample template This is a sample template part 2 Hi there 
+Also, the includeonly will be concatenated if there are multiple
+Test: passed
+
+<includeonly>This is a sample template</includeonly>
+<includeonly><noinclude>This is a sample template</noinclude> part 2</includeonly>
+<includeonly>Hi there</includeonly>
+
+Output:
+This is a sample template part 2 Hi there
+
+So, as imagined the noinclude is not considered
+"""
+
+# TODO fix spaces problem:
+# a possibile solution, to match strip the string and substitute \n with spaces?
+# strip is basically needed because the html.parser changes the tags -> <br \> -> <br\>
+
+# this produces: https://regex101.com/r/CTu4as/1
 def userwarnings_regex_extractor(text: str) -> str:
     # list of parameters
     parameters = set()
-
+    # templates which could be substituted
+    sub_templates = set()
+    document = BeautifulSoup(text, 'html.parser')
     # remove the noinclude elements
-    # TODO inefficient, but the Xml will always be not well formatted, lxml and Beautiful Soup don't parse it right
-    text, found = xml_tag_content(text, 'noinclude', False)
-
-    # TODO inefficient, but the Xml will always be not well formatted, lxml and Beautiful Soup don't parse it right
-    text, found = xml_tag_content(text, 'onlyinclude', True)    # keep the onlyinclude
-    
-    if found:   # if found the onlyinclude
-        # the includeonly are seen inside, so the labels <includeonly> should be deleted
-        text = text.replace('<includeonly>', '')
-        text = text.replace('</includeonly>', '')
-        # we do not care about the representation, but only about the template that will be transcluded or substituted
-    else:
-        # keep the includeonly if exists, same TODO, for now concatenated
-        # TODO inefficient, but the Xml will always be not well formatted, lxml and Beautiful Soup don't parse it right
-        text, found = xml_tag_content(text, 'includeonly', True)
-
-    # TODO what happens if tags are nested?
-
+    remove_no_include(document)
+    # keep onlyinclude if present
+    document, only_include_present = keep_only_includes(document)
+    # keep or remove the include_only tags
+    document = keep_or_include_include_only(document, only_include_present)
     # regex escape
-    text = re.escape(text.strip())  # why the escape does not work well
-    text = text.replace('/', '\/')
-    to_subst = list()   # what to substitute from text
+    document = regex_escape_document_text(document)
 
-    # NOTE indentification of variables
-    for match in parameters_pattern_escaped.finditer(text): # returns an iterator of match object
-        # TODO check what happens if multiple onlyinclude, for now, concatenated
+    to_subst = list()   # what to substitute from the document text
+    option_counter = 0  # option counter
+    # Options identification
+    for match in parameters_pattern_escaped.finditer(document): # returns an iterator of match object
         if check_options_presence(match):            # extract a named group called options (name of the wikipause template used)
-            original_text = match.group('options')
-            adjusted_options = original_text
-            options = original_text.split('|')
+            options = match.group('options').split('|') # list of options
             # remember to substitute
-            adjusted_options = '(?:'    # add the uncatching group
+            new_options = '(?P<{}>'.format('options_{}'.format(option_counter))    # add the catching group (option_number of option)
+            first_opt = True
             for opt in options:
                 if opt:
-                    # sanification
+                    # sanification from the re.escape
                     if opt[-1] == '\\':
                         opt = opt[:-1]
                     # save the parameter
-                    parameters.add(opt)
-                    adjusted_options = ''.join([adjusted_options, '\{\{\{%s\}\}\}|{%s}'%(opt, opt)])    # add the options and the {} with the paramter name, so it could be substituted
+                    parameters.add(opt) # add the parameter as a possibile paramter to the template
+                    if first_opt:
+                        # add the options and the {} with the paramter name, so it could be substituted
+                        # add the possibility to use whatever text the user wants
+                        new_options = ''.join([new_options, r'\{\{\{%s\}\}\}|[^}]*'%(opt)])    
+                        first_opt = False
+                    else:
+                        new_options = ''.join([new_options, r'|\{\{\{%s\}\}\}'%(opt)])
                 else:
-                    # add an empty one
-                    adjusted_options = ''.join([adjusted_options, '|'])
-            adjusted_options = ''.join([adjusted_options, ')']) # close the group
-            to_subst.append({'start': match.start(), 'end': match.end(), 'string': adjusted_options})
-        
-    for el in reversed(to_subst):
-        text = text[0: el['start']] + el['string'] + text[el['end'] : ]
+                    # add an empty parameter
+                    new_options = ''.join([new_options, '|'])
+            new_options = ''.join([new_options, ')']) # close the catching group
+            # object to substitute
+            to_subst.append({'start': match.start(), 'end': match.end(), 'string': new_options})
+            option_counter += 1
+    
+    while to_subst:
+        el = to_subst.pop()
+        document = document[0: el['start']] + el['string'] + document[el['end'] : ]
 
-    return UserWarningTemplate(text, list(parameters))
+    # look for chain substitution
+    for match in subst_pattern_escaped.finditer(document):
+        sub_templates.add(match.group('pattern_name'))
+    
+    with open('template_to_retrieve.txt', 'a+') as f:
+        f.write('{}\n'.format(sub_templates))
+
+    return UserWarningTemplate(document, list(parameters), list(sub_templates))
+
+def regex_escape_document_text(document: BeautifulSoup) -> str:
+    """String to regex"""
+    document = str(document)
+    document = re.sub(' +', ' ', document).strip()
+    document = re.escape(document)
+    document = document.replace('/', r'\/')
+    return document
+
+def keep_or_include_include_only(document: BeautifulSoup, remove_tags: bool) -> BeautifulSoup:
+    """
+    If there is an onlyinclude tag then it removes the inludehonly tags but not the content of them
+    If there are none onlyinclude tags then it keeps only the content of the includeonly tags
+    """
+    include_only = document.find_all('includeonly', recursive=False)
+    if remove_tags:
+        for i_o in include_only:
+            i_o.replace_with(i_o.text)
+    else:
+        if include_only:
+            new_text = ''
+            for i_o in include_only:
+                print(i_o)
+                new_text = ' '.join([new_text, i_o.text])
+            document = BeautifulSoup(new_text, 'html.parser')
+    return document
+
+def keep_only_includes(document: BeautifulSoup) -> [BeautifulSoup, bool]:
+    """Keeps only the onlyincludes tags if any"""
+    only_includes = document.find_all('onlyinclude', recursive=False)
+    only_include_present = False    # if onlyincludes are contained in the document
+    if only_includes:
+        new_text = ''
+        for o_i in only_includes:
+            new_text = ' '.join([new_text, o_i.text])
+        document = BeautifulSoup(new_text, 'html.parser')
+        only_include_present = True
+    return document, only_include_present
+
+def remove_no_include(document: BeautifulSoup) -> None:
+    """Removes the noinclude tags"""
+    no_includes = document.find_all('noinclude')
+    for n_i in no_includes:
+        n_i.replace_with('')
 
 def check_options_presence(match: Iterator[re.Match]) -> bool:
     """Checks if some groups is present inside the match object"""
@@ -89,22 +188,3 @@ def check_options_presence(match: Iterator[re.Match]) -> bool:
         return True
     except IndexError:
         return False
-
-def xml_tag_content(text: str, tag_name: str, include: bool) -> [str, bool]:
-    found_tag = False
-    while tag_name in text:
-        match_open_index = re.search('<{}>'.format(tag_name), text)
-        match_close_index = re.search('</{}>'.format(tag_name), text)
-        if match_open_index and match_close_index:
-            if include:
-                match_open_index = match_open_index.end()
-                match_close_index = match_close_index.start()
-            else:
-                match_open_index = match_open_index.start()
-                match_close_index = match_close_index.end()
-            if len(text) > match_close_index:
-                text = text[0 : match_open_index :] + text[match_close_index : :]
-                found_tag = True
-        else:
-            break
-    return text, found_tag

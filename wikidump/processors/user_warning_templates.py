@@ -51,11 +51,12 @@ user_warnings_templates = set(
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the template page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, text: str, timestamp: str):
+    def __init__(self, id: str, user: mwxml.Revision.User, text: str, timestamp: str, templates: extractors.user_warnings_template.UserWarningTemplate):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
         self.text = text                                            # revision text
+        self.templates = templates                                  # list of regex for that particular template and the parameters of that template
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -70,6 +71,7 @@ class Revision:
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
         obj['text'] = self.text
+        obj['templates'] = self.templates.to_dict()
         return obj
 
 class Page:
@@ -111,13 +113,18 @@ def extract_revisions(
         # remove html comments
         text = utils.remove_comments(mw_revision.text or '')
 
+        templates = extractors.user_warnings_template.userwarnings_regex_extractor(text)
+
         # Build the revision
         rev = Revision(
             id=mw_revision.id,
             user=mw_revision.user,
             text=text,
-            timestamp=mw_revision.timestamp.to_json()
+            timestamp=mw_revision.timestamp.to_json(),
+            templates=templates,
         )
+
+        # TODO revisions need to be more accurate, excecially their change date
 
         # Check the oldest revisions possible
         if not newest_revision:
@@ -196,6 +203,8 @@ def extract_pages(
 
         yield page
 
+        break
+
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):
@@ -242,7 +251,7 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict()))
+        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
