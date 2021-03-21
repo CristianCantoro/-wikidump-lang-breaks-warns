@@ -41,6 +41,32 @@ r'''
     \\\}\\\}
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
+onlyinclude_tag = re.compile(
+r'''
+    <
+        \s*
+        (?:
+            \/
+            |
+        )
+        onlyinclude
+        \s*
+    >
+''', re.UNICODE | re.VERBOSE | re.MULTILINE)
+
+include_only_tag = re.compile(
+r'''
+    <
+        \s*
+        (?:
+            \/
+            |
+        )
+        includeonly
+        \s*
+    >
+''', re.UNICODE | re.VERBOSE | re.MULTILINE)
+
 # TODO there could also be a chain of substitution
 
 """
@@ -69,6 +95,7 @@ Test: passed
 
 Output:
 This is a sample template part 2 Hi there
+Test: passed
 
 So, as imagined the noinclude is not considered
 """
@@ -151,16 +178,24 @@ def keep_or_include_include_only(document: BeautifulSoup, remove_tags: bool) -> 
     If there are none onlyinclude tags then it keeps only the content of the includeonly tags
     """
     include_only = document.find_all('includeonly', recursive=False)
+    new_text = ''
     if remove_tags:
-        for i_o in include_only:
-            i_o.replace_with(i_o.text)
+        new_text = re.sub(include_only_tag, '', str(document))
     else:
         if include_only:
-            new_text = ''
             for i_o in include_only:
-                print(i_o)
-                new_text = ' '.join([new_text, i_o.text])
-            document = BeautifulSoup(new_text, 'html.parser')
+                new_text = ' '.join(
+                    [
+                        new_text, 
+                        re.sub(
+                            include_only_tag,
+                            '',
+                            str(i_o)
+                        )
+                    ]
+                )
+    if new_text:
+        document = BeautifulSoup(new_text, 'html.parser')
     return document
 
 def keep_only_includes(document: BeautifulSoup) -> [BeautifulSoup, bool]:
@@ -170,7 +205,16 @@ def keep_only_includes(document: BeautifulSoup) -> [BeautifulSoup, bool]:
     if only_includes:
         new_text = ''
         for o_i in only_includes:
-            new_text = ' '.join([new_text, o_i.text])
+            new_text = ' '.join(
+                [
+                    new_text, 
+                    re.sub(
+                        onlyinclude_tag,
+                        '',
+                        str(o_i)
+                    )
+                ]
+            )
         document = BeautifulSoup(new_text, 'html.parser')
         only_include_present = True
     return document, only_include_present
