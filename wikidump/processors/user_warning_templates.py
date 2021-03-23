@@ -13,6 +13,12 @@ from .. import dumper, extractors, user_warnings_en, user_warnings_it, user_warn
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
 
+# time interval in seconds
+time_interval_in_seconds = {
+    '1 day': 86400,
+    '1 week': 604800
+}
+
 user_warnings_templates = set(
     user_warnings_en.block_templates_indefinitely_blocked_templates + \
     user_warnings_en.block_templates + \
@@ -74,6 +80,28 @@ class Revision:
         obj['templates'] = self.templates.to_dict()
         return obj
 
+    def __repr__(self):
+        return 'date: {}'.format(self.timestamp)
+
+    def __lt__(self, other):
+        return datetime.datetime.fromisoformat(self.timestamp.replace('Z', '+00:00')) < datetime.datetime.fromisoformat(other.timestamp.replace('Z', '+00:00'))
+
+def add_elements_in_list_and_set(element: extractors.user_warnings_template.UserWarningTemplate, 
+    template_list: Iterable[extractors.user_warnings_template.UserWarningTemplate], 
+    template_set: Iterable[extractors.user_warnings_template.UserWarningTemplate]) -> None:
+
+    template_list.append(element)
+    template_set.add(element.templates.regexp)
+
+def remove_substitute_element_in_list_and_set(element: extractors.user_warnings_template.UserWarningTemplate, 
+    to_remove: str,
+    template_list: Iterable[extractors.user_warnings_template.UserWarningTemplate], 
+    template_set: Iterable[extractors.user_warnings_template.UserWarningTemplate]) -> None:
+
+    template_list[-1] = element
+    if to_remove in template_set:
+        template_set.remove(to_remove)
+
 class Page:
     """Class which represent a page containing a list of revisions"""
     def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision]):
@@ -124,8 +152,6 @@ def extract_revisions(
             templates=templates,
         )
 
-        # TODO revisions need to be more accurate, excecially their change date
-
         # Check the oldest revisions possible
         if not newest_revision:
             newest_revision = rev
@@ -138,10 +164,6 @@ def extract_revisions(
 
         # Update stats
         stats['performance']['revisions_analyzed'] += 1
-        stats['templates']['stats'][mw_page.title]['revisions'] += 1
-        stats['templates']['stats'][mw_page.title]['last_revision_date'] = datetime.datetime.fromisoformat(newest_revision.timestamp.replace('Z', '+00:00'))
-        stats['templates']['stats'][mw_page.title]['revision_changes'].append(datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00')))
-        stats['templates']['stats'][mw_page.title]['not_modified_since'] =  datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(newest_revision.timestamp.replace('Z', '+00:00'))
 
         # requested only the last revision
         if only_last_revision:
@@ -153,7 +175,9 @@ def extract_revisions(
 def extract_pages(
         dump: Iterable[mwxml.Page],
         stats: Mapping,
-        only_last_revision: bool) -> Iterator[Page]:
+        only_last_revision: bool,
+        set_interval: Optional[str],
+        esclude_template_repetition: bool) -> Iterator[Page]:
     """Extract the templates from an user page."""
 
     # Loop on all the pages in the dump, one at a time
@@ -176,30 +200,72 @@ def extract_pages(
         revisions_generator = extract_revisions(
             mw_page,
             stats=stats,
-            only_last_revision=only_last_revision
+            only_last_revision=only_last_revision,
         )
 
         revisions_list = list(revisions_generator)
+
+        revisions_list.sort()
+        filtered_revisions_list = list()
+
+        # reference revisions
+        reference_rev  = None
+        # take the first reference revision and insert it
+        if revisions_list:
+            reference_rev = revisions_list[0]
+            filtered_revisions_list.append(reference_rev)
+
+        # partition time by time interval specified by set_interval
+        if set_interval or esclude_template_repetition:
+            for elem in revisions_list:
+                # ge the last inserted and current time interval
+                last_inserted_time =  datetime.datetime.fromisoformat(reference_rev.timestamp.replace('Z', '+00:00'))
+                current_time = datetime.datetime.fromisoformat(elem.timestamp.replace('Z', '+00:00'))
+                condition = True
+                if set_interval:
+                    # condition for the time interval
+                    condition = condition and (current_time - last_inserted_time).total_seconds() < time_interval_in_seconds[set_interval]
+                if esclude_template_repetition:
+                    # condition for the different regexp
+                    condition = condition and reference_rev.templates.regexp != elem.templates.regexp
+                if condition:
+                    filtered_revisions_list[-1] = elem      # substitute because included in the time interval (partitioned by the time interval)
+                else:
+                    # if there is the different regexp selected then inserted only if the previous one has different regexp than the current one
+                    if not (esclude_template_repetition and reference_rev.templates.regexp == elem.templates.regexp):
+                        filtered_revisions_list.append(elem)
+                        reference_rev = elem
+                    else:
+                        print('discarted elemdate', elem.timestamp)
+        else:
+            # no tag selected
+            filtered_revisions_list = revisions_list
 
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
-            revisions=revisions_list,
+            revisions=filtered_revisions_list,
         )
 
         # stats update
         stats['templates']['total'] += 1
-        stats['templates']['stats'][mw_page.title]['revision_changes'].sort()
+        
         # calculate the average average_modification_time
-        for index in range(1, len(stats['templates']['stats'][mw_page.title]['revision_changes'])):
-            old = stats['templates']['stats'][mw_page.title]['revision_changes'][index - 1]
-            new = stats['templates']['stats'][mw_page.title]['revision_changes'][index]
-            stats['templates']['stats'][mw_page.title]['average_modification_time'] += (new - old).total_seconds()
+        for index in range(len(filtered_revisions_list)):
+            stats['templates']['stats'][mw_page.title]['revisions'] += 1
+            stats['templates']['stats'][mw_page.title]['revision_changes'].append(datetime.datetime.fromisoformat(filtered_revisions_list[index].timestamp.replace('Z', '+00:00')))
+            if index != 0:
+                new = stats['templates']['stats'][mw_page.title]['revision_changes'][index]
+                old = stats['templates']['stats'][mw_page.title]['revision_changes'][index - 1]
+                stats['templates']['stats'][mw_page.title]['average_modification_time'] += (new - old).total_seconds()
 
-        # for now they are seconds
-        stats['templates']['stats'][mw_page.title]['average_modification_time'] /=  stats['templates']['stats'][mw_page.title]['revisions']
-        stats['templates']['stats'][mw_page.title]['average_modification_time'] = str(datetime.timedelta(seconds = stats['templates']['stats'][mw_page.title]['average_modification_time']))
+        # set the last revision date, not modified since and average modification time only if the filtered revision does exist
+        if filtered_revisions_list:
+            stats['templates']['stats'][mw_page.title]['last_revision_date'] = datetime.datetime.fromisoformat(filtered_revisions_list[-1].timestamp.replace('Z', '+00:00'))
+            stats['templates']['stats'][mw_page.title]['not_modified_since'] = datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(filtered_revisions_list[-1].timestamp.replace('Z', '+00:00'))
+            stats['templates']['stats'][mw_page.title]['average_modification_time'] /=  stats['templates']['stats'][mw_page.title]['revisions']
+            stats['templates']['stats'][mw_page.title]['average_modification_time'] = str(datetime.timedelta(seconds = stats['templates']['stats'][mw_page.title]['average_modification_time']))
 
         yield page
 
@@ -217,6 +283,18 @@ def configure_subparsers(subparsers):
         '--only-last-revision',
         action='store_true',
         help='Consider only the last revision for each page.',
+    )
+    parser.add_argument(
+        '--set-interval',
+        choices={None, '1 day', '1 week'},
+        required=False,
+        default=None,
+        help='Time interval at the end of which to return the revison',
+    )
+    parser.add_argument(
+        '--esclude-template-repetition',
+        action='store_true',
+        help='It does not return a revision if the same template was previously declared ',
     )
     parser.set_defaults(func=main)
 
@@ -245,7 +323,9 @@ def main(
     pages_generator = extract_pages(
         dump,
         stats=stats,
-        only_last_revision=args.only_last_revision
+        only_last_revision=args.only_last_revision,
+        set_interval=args.set_interval,
+        esclude_template_repetition=args.esclude_template_repetition
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()

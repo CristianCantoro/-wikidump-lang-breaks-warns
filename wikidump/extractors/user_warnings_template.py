@@ -10,8 +10,7 @@ import regex as re
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping
 from .common import CaptureResult, Identifier, Span
 from .types.user_warning_template import UserWarningTemplate
-# Beautiful soup
-from bs4 import BeautifulSoup
+import mwparserfromhell
 
 # exports 
 __all__ = ['userwarnings_regex_extractor', 'UserWarningTemplate']
@@ -26,108 +25,47 @@ r'''
     \\\}\\\}\\\}            # match \}\}\}
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
+# pattern for nested substitution templates
 subst_pattern_escaped = re.compile(
 r'''
-    \\\{\\\{
-        (?:
-            \s
-            |
-            _
-        )*
-        subst:
-        (?P<pattern_name>
-            [^\{]*
-        )
-    \\\}\\\}
+    \\\{\\\{                        # match \{\{
+        (?:                         # begin of a non catching group
+            \s                      # spaces or newlines
+            |                       # or
+            _                       # underscores
+        )*                          # repeated 0 or multiple times
+        subst:                      # match subst:
+        (?P<pattern_name>           # begin of a named group called pattern_name 
+            [^\{]*                  # match all except {
+        )                           # close of the 
+    \\\}\\\}                        # match \}\}
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
 onlyinclude_tag = re.compile(
 r'''
-    <
-        \s*
-        (?:
-            \\\/
-            |
-        )
-        onlyinclude
-        \s*
-    >
+    <                               # match <
+        \s*                         # spaces multiple or 0 times
+        (?:                         # begin of a non catching group
+            \/                      # match /
+            |                       # or nothing
+        )                           # close the non cathing group
+        onlyinclude                 # match onlyinclude
+        \s*                         # spaces multiple or 0 times
+    >                               # match >
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
 include_only_tag = re.compile(
 r'''
-    <
-        \s*
-        (?:
-            \\\/
-            |
-        )
-        includeonly
-        \s*
-    >
+    <                               # match <
+        \s*                         # spaces multiple or 0 times
+        (?:                         # begin of a non catching group
+            \/                      # match /
+            |                       # or nothing
+        )                           # close the non cathing group
+        includeonly                 # match includeonly
+        \s*                         # spaces multiple or 0 times
+    >                               # match >
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
-
-noinclude_pattern_lazy = re.compile(
-    r'''
-    <
-        \s*
-        noinclude
-        \s*
-    >
-    (?:
-        \s
-        |
-        .
-    )*?
-    <
-        \s*
-        \\\/
-        noinclude
-        \s*
-    >
-''', re.UNICODE | re.VERBOSE | re.MULTILINE)
-
-includeonly_pattern_lazy = re.compile(
-    r'''
-    <
-        \s*
-        includeonly
-        \s*
-    >
-    (?:
-        \s
-        |
-        .
-    )*?
-    <
-        \s*
-        \\\/
-        includeonly
-        \s*
-    >
-''', re.UNICODE | re.VERBOSE | re.MULTILINE)
-
-onlyinclude_pattern_lazy = re.compile(
-    r'''
-    <
-        \s*
-        onlyinclude
-        \s*
-    >
-    (?:
-        \s
-        |
-        .
-    )*?
-    <
-        \s*
-        \\\/
-        onlyinclude
-        \s*
-    >
-''', re.UNICODE | re.VERBOSE | re.MULTILINE)
-
-|| w ||2
 
 # TODO there could also be a chain of substitution
 
@@ -164,24 +102,26 @@ Test: passed
 So, as imagined the noinclude is not considered
 """
 
-# this produces: https://regex101.com/r/VfQeDf/1
+# this produces: https://regex101.com/r/CoSTLw/1
 def userwarnings_regex_extractor(text: str) -> str:
     # list of parameters
     parameters = set()
     # templates which could be substituted
     sub_templates = set()
-    # regex escape
-    text = regex_escape_text(text)
+    # prova
+    wikicode = mwparserfromhell.parse(text)
     # remove the noinclude elements
-    text = remove_no_include(text)
+    wikicode = remove_no_include(wikicode)
     # keep onlyinclude if present
-    text, only_include_present = keep_only_includes(text)
+    wikicode, only_include_present = keep_only_includes(wikicode)
     # keep or remove the include_only tags
-    text = keep_or_include_include_only(text, only_include_present)
+    wikicode = keep_or_include_include_only(wikicode, only_include_present)
+    # regex escape
+    wikicode = regex_escape_text(str(wikicode))
     to_subst = list()   # what to substitute from the document text
     option_counter = 0  # option counter
-    # Options identification
-    for match in parameters_pattern_escaped.finditer(text): # returns an iterator of match object
+    # Options identification todo see if it can be modified with the parser from hell
+    for match in parameters_pattern_escaped.finditer(wikicode): # returns an iterator of match object
         if check_options_presence(match):            # extract a named group called options (name of the wikipause template used)
             options = match.group('options').split('|') # list of options
             # remember to substitute
@@ -195,7 +135,6 @@ def userwarnings_regex_extractor(text: str) -> str:
                     # save the parameter
                     parameters.add(opt) # add the parameter as a possibile paramter to the template
                     if first_opt:
-                        # add the options and the {} with the paramter name, so it could be substituted
                         # add the possibility to use whatever text the user wants
                         new_options = ''.join([new_options, r'\{\{\{%s\}\}\}|[^}]*'%(opt)])    
                         first_opt = False
@@ -208,70 +147,77 @@ def userwarnings_regex_extractor(text: str) -> str:
             # object to substitute
             to_subst.append({'start': match.start(), 'end': match.end(), 'string': new_options})
             option_counter += 1
-    
+
+    # perform the parameter substitution
     while to_subst:
         el = to_subst.pop()
-        text = text[0: el['start']] + el['string'] + text[el['end'] : ]
+        wikicode = wikicode[0: el['start']] + el['string'] + wikicode[el['end'] : ]
 
     # look for chain substitution
-    for match in subst_pattern_escaped.finditer(text):
+    for match in subst_pattern_escaped.finditer(wikicode):
         sub_templates.add(match.group('pattern_name'))
     
+    # save the templates to retrieve
     with open('template_to_retrieve.txt', 'a+') as f:
         f.write('{}\n'.format(sub_templates))
 
-    return UserWarningTemplate(text, list(parameters), list(sub_templates))
+    # adjust spaces in regex
+    wikicode = re.sub(r'\\\s', r'(?:\s|)', wikicode)
 
-def remove_no_include(text: str) -> str:
+    return UserWarningTemplate(wikicode, list(parameters), list(sub_templates))
+
+def remove_no_include(wikicode: mwparserfromhell.wikicode.Wikicode) -> mwparserfromhell.wikicode.Wikicode:
     """Removes the noinclude tags"""
-    return re.sub(noinclude_pattern_lazy, '', text)
+    for tag in wikicode.filter_tags():
+        if tag.tag.matches('noinclude'):
+            try:
+                wikicode.remove(tag)
+            except ValueError:
+                pass
+    return wikicode
 
-def keep_only_includes(text: str) -> [str, bool]:
-    only_includes = re.findall(onlyinclude_pattern_lazy, text)
+def keep_only_includes(wikicode: mwparserfromhell.wikicode.Wikicode) -> [mwparserfromhell.wikicode.Wikicode, bool]:
+    """Keeps only the onlyincludes tags if any"""
     only_include_present = False
-    if only_includes:
-        new_text = ''
-        for o_i in range(len(only_includes)):
-            tags = re.findall(onlyinclude_tag, only_includes[o_i])
-            new_text = r'\s*'.join([new_text, only_includes[o_i]])
-            if len(tags) > 2: # another tag should be open but not closed
-                # to avoid this cases:
-                    # <onlyinclude><onlyinclude>This is a sample template</onlyinclude> part 2</onlyinclude>
-                    # matched: <onlyinclude><onlyinclude>This is a sample template</onlyinclude>
-                    # escluded: part 2</onlyinclude> -> with (?:\s|.)*? we basically include it in some way
-                new_text = ''.join([new_text, r'(?:\s|.)*?'])
-        new_text = re.sub(onlyinclude_tag, '', new_text)
-        only_include_present = True
-    else:
-        new_text = text
-    return new_text, only_include_present
+    to_remove = list()
+    for tag in wikicode.filter_tags(recursive=False):   # select only the most external one
+        if tag.tag.matches('onlyinclude'):
+            only_include_present = True
+        else:
+            to_remove.append(tag)
+    if only_include_present:
+        for tag in to_remove:
+            try:
+                wikicode.remove(tag)
+            except ValueError:
+                pass
+    wikicode =  mwparserfromhell.parse(re.sub(onlyinclude_tag, '', str(wikicode)))
+    return wikicode, only_include_present
 
-def keep_or_include_include_only(text: str, remove_tags: bool) -> str:
+def keep_or_include_include_only(wikicode: mwparserfromhell.wikicode.Wikicode, remove_tags: bool) -> mwparserfromhell.wikicode.Wikicode:
     """
-    If there is an onlyinclude tag, the function removes the inludeonly tags but not the content of them
-    If there are none onlyinclude tags then it keeps only the content of the includeonly tags
+    If there is an onlyinclude tag, the function removes the includeonly tags but not the content of them (remove_tags set o true)
+    If there are no onlyinclude tags (remove_tags set to false) then it keeps only the content of the includeonly tags
     """
-    include_only = re.findall(includeonly_pattern_lazy, text)
     if remove_tags:
-        text = re.sub(include_only_tag, '', text)
-    else:
-        if include_only:
-            text = ''
-            for i_o in range(len(include_only)):
-                tags = re.findall(include_only_tag, include_only[i_o])
-                text = r'\s*'.join([text, include_only[i_o]])
-                if len(tags) > 2: # another tag should be open but not closed
-                    # to avoid this cases:
-                        # <includeonly><includeonly>This is a sample template</includeonly> part 2</includeonly>
-                        # matched: <includeonly><includeonly>This is a sample template</includeonly>
-                        # escluded: part 2</includeonly> -> with (?:\s|.)*? we basically include it in some way
-                    text = ''.join([text, r'(?:\s|.)*?'])
-            text = re.sub(include_only_tag, '', text)
-    return text
+        to_remove = list()
+        for tag in wikicode.filter_tags(recursive=False):
+            if tag.tag.matches('includeonly'):
+                only_include_present = True
+            else:
+                to_remove.append(tag)
+        if only_include_present:
+            for tag in to_remove:
+                try:
+                    wikicode.remove(tag)
+                except ValueError:
+                    pass
+    wikicode = mwparserfromhell.parse(re.sub(include_only_tag, '', str(wikicode)))
+    return wikicode
 
 def regex_escape_text(text: str) -> str:
     """String to regex"""
-    document = re.escape(text.strip())
+    document = re.escape(text)
     document = document.replace('/', r'\/')
     return document
 
