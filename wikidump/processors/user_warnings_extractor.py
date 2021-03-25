@@ -142,7 +142,7 @@ def extract_pages(
         only_last_revision: bool,
         only_pages_with_user_warnings: bool,
         only_revisions_with_user_warnings: bool) -> Iterator[Page]:
-    """Extract wikibreaks from an user page."""
+    """Extract user warnings from an user page."""
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
@@ -203,7 +203,7 @@ def extract_pages(
             stats['user_warnings']['user_template_occurences'][lang][u_w]['user_talk_occurences_with_params'] += int(template_occurences[u_w]['with_params'])
 
          
-        # Return only the pages with at least one wikibreak if the flag's active
+        # Return only the pages with at least one user warning if the flag's active
         if only_pages_with_user_warnings:
             if page.num_user_warnings > 0:
                 stats['user_warnings']['users'] += 1

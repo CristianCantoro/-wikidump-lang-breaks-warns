@@ -15,9 +15,11 @@ mwparserfromhell==0.4.2
 mwtypes==0.2.0
 mwxml==0.2.0
 networkx==1.11
+nltk==3.5
 para==0.0.5
 PyMySQL==0.7.1
 python-Levenshtein==0.12.2
 regex==2019.2.18
 requests==2.9.1
+snowballstemmer==2.1.0
 typing==3.5.0.1

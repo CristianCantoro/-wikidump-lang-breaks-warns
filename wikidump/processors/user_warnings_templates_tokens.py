@@ -1,4 +1,4 @@
-"""Extract the user warning templates crafting a regex for matching them in the text"""
+"""Extract the most recurrent tokens of the template text"""
 
 import collections
 import json
@@ -7,8 +7,11 @@ import mwxml
 import datetime
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 from backports.datetime_fromisoformat import MonkeyPatch
-
+# nltk
+import nltk.corpus 
+from nltk.text import TextCollection
 from .. import dumper, extractors, user_warnings_en, user_warnings_it, user_warnings_es, user_warnings_ca, utils
+import math
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
@@ -57,12 +60,12 @@ user_warnings_templates = set(
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the template page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, text: str, timestamp: str, templates: extractors.user_warnings_template.UserWarningTemplate):
+    def __init__(self, id: str, user: mwxml.Revision.User, text: str, timestamp: str, template_info: extractors.user_warnings_template_words.UserWarningTf):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
         self.text = text                                            # revision text
-        self.templates = templates                                  # list of regex for that particular template and the parameters of that template
+        self.template_info = template_info                          # template information about the words stemmed and without stopwords and occurences
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -77,7 +80,7 @@ class Revision:
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
         obj['text'] = self.text
-        obj['templates'] = self.templates.to_dict()
+        obj['template_info'] = self.template_info.to_dict()
         return obj
 
     def __repr__(self):
@@ -86,13 +89,15 @@ class Revision:
     def __lt__(self, other):
         return datetime.datetime.fromisoformat(self.timestamp.replace('Z', '+00:00')) < datetime.datetime.fromisoformat(other.timestamp.replace('Z', '+00:00'))
 
+
 class Page:
     """Class which represent a page containing a list of revisions"""
-    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision]):
+    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision], tfidf: Mapping):
         self.id = id                            # page id
         self.namespace = namespace              # page namespace
         self.title = title                      # page title
         self.revisions = revisions              # list of revisions
+        self.tfidf=tfidf                        # tf-idf metrics
 
     def to_dict(self) -> Mapping:
         """Converts the object instance into a dictionary"""
@@ -103,14 +108,16 @@ class Page:
         obj['revisions'] = list()
         for rev in self.revisions:
             obj['revisions'].append(rev.to_dict())
+        obj['tf-idf'] = self.tfidf 
         return obj
 
 def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
-        only_last_revision: bool) -> Iterator[Revision]:
+        only_last_revision: bool,
+        language: str) -> Iterator[Revision]:
     
-    """Extracts the history of a user_warning_template within a template page."""
+    """Extracts the history of a user_warning_template within a template page -> most important keywords."""
     revisions = more_itertools.peekable(mw_page)
 
     # Newest revisions, useful only if the only_last_revision flag is set equal to true
@@ -125,7 +132,8 @@ def extract_revisions(
         # remove html comments
         text = utils.remove_comments(mw_revision.text or '')
 
-        templates = extractors.user_warnings_template.userwarnings_regex_extractor(text)
+        # extract the template text and other info
+        template_info = extractors.user_warnings_template_words.userwarnings_words_extractor(text, language)
 
         # Build the revision
         rev = Revision(
@@ -133,7 +141,7 @@ def extract_revisions(
             user=mw_revision.user,
             text=text,
             timestamp=mw_revision.timestamp.to_json(),
-            templates=templates,
+            template_info=template_info,
         )
 
         # Check the oldest revisions possible
@@ -161,7 +169,8 @@ def extract_pages(
         stats: Mapping,
         only_last_revision: bool,
         set_interval: Optional[str],
-        esclude_template_repetition: bool) -> Iterator[Page]:
+        esclude_template_repetition: bool,
+        language: str) -> Iterator[Page]:
     """Extract the templates from an user page."""
 
     # Loop on all the pages in the dump, one at a time
@@ -172,19 +181,12 @@ def extract_pages(
         if mw_page.namespace != 10 or not mw_page.title.lower() in user_warnings_templates:
             utils.log('Skipped (namespace != 10 or different template from the user warnings ones)')
             continue
-    
-        # create the stats needed
-        stats['templates']['stats'][mw_page.title] = dict()
-        stats['templates']['stats'][mw_page.title]['revisions'] = 0
-        stats['templates']['stats'][mw_page.title]['last_revision_date'] = None
-        stats['templates']['stats'][mw_page.title]['revision_changes'] = list()
-        stats['templates']['stats'][mw_page.title]['average_modification_time'] = 0
-        stats['templates']['stats'][mw_page.title]['not_modified_since'] = None
 
         revisions_generator = extract_revisions(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
+            language=language
         )
 
         revisions_list = list(revisions_generator)
@@ -211,57 +213,62 @@ def extract_pages(
                     condition = condition and (current_time - last_inserted_time).total_seconds() < time_interval_in_seconds[set_interval]
                 if esclude_template_repetition:
                     # condition for the different regexp
-                    condition = condition and reference_rev.templates.regexp != elem.templates.regexp
+                    condition = condition and reference_rev.template_info.template_text != elem.template_info.template_text
                 if condition:
                     filtered_revisions_list[-1] = elem      # substitute because included in the time interval (partitioned by the time interval)
                 else:
                     # if there is the different regexp selected then inserted only if the previous one has different regexp than the current one
-                    if not (esclude_template_repetition and reference_rev.templates.regexp == elem.templates.regexp):
+                    if not (esclude_template_repetition and reference_rev.template_info.template_text == elem.template_info.template_text):
                         filtered_revisions_list.append(elem)
                         reference_rev = elem
-                    else:
-                        print('discarted elemdate', elem.timestamp)
         else:
             # no tag selected
             filtered_revisions_list = revisions_list
+
+        # element occur in document
+        is_in_document_dict = dict()
+        corpus_size = len(filtered_revisions_list)
+        for revision in filtered_revisions_list:
+            for word in revision.template_info.inf_retrieval:
+                if not word in is_in_document_dict:
+                    is_in_document_dict[word] = 1
+                else:
+                    is_in_document_dict[word] += 1
+
+        idf_dict = dict()   # idf per corpus
+        for word in is_in_document_dict:
+            idf_dict[word] = math.log(corpus_size / is_in_document_dict[word], 10)
+            
+        tfidf = dict() # the corpus is constant, so it will be indicized by word and document
+        for word in is_in_document_dict: # for every word
+            tfidf[word] = dict()
+            for doc_index in range(len(filtered_revisions_list)): # for all document
+                rev = filtered_revisions_list[doc_index]
+                if word in rev.template_info.inf_retrieval:
+                    tf = rev.template_info.inf_retrieval[word] / rev.template_info.total_number_words
+                else:
+                    tf = 0
+                tfidf[word][doc_index] = tf * idf_dict[word]
+       
+        stats['user_warnings_templates'][mw_page.title] = tfidf
 
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
             revisions=filtered_revisions_list,
+            tfidf=tfidf
         )
-
-        # stats update
-        stats['templates']['total'] += 1
-        
-        # calculate the average average_modification_time
-        for index in range(len(filtered_revisions_list)):
-            stats['templates']['stats'][mw_page.title]['revisions'] += 1
-            stats['templates']['stats'][mw_page.title]['revision_changes'].append(datetime.datetime.fromisoformat(filtered_revisions_list[index].timestamp.replace('Z', '+00:00')))
-            if index != 0:
-                new = stats['templates']['stats'][mw_page.title]['revision_changes'][index]
-                old = stats['templates']['stats'][mw_page.title]['revision_changes'][index - 1]
-                stats['templates']['stats'][mw_page.title]['average_modification_time'] += (new - old).total_seconds()
-
-        # set the last revision date, not modified since and average modification time only if the filtered revision does exist
-        if filtered_revisions_list:
-            stats['templates']['stats'][mw_page.title]['last_revision_date'] = datetime.datetime.fromisoformat(filtered_revisions_list[-1].timestamp.replace('Z', '+00:00'))
-            stats['templates']['stats'][mw_page.title]['not_modified_since'] = datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(filtered_revisions_list[-1].timestamp.replace('Z', '+00:00'))
-            stats['templates']['stats'][mw_page.title]['average_modification_time'] /=  stats['templates']['stats'][mw_page.title]['revisions']
-            stats['templates']['stats'][mw_page.title]['average_modification_time'] = str(datetime.timedelta(seconds = stats['templates']['stats'][mw_page.title]['average_modification_time']))
 
         yield page
 
         break
 
-        stats['performance']['pages_analyzed'] += 1
-
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
-        'extract-user-warnings-templates',
-        help='Extract the history of the templates of the users warnings',
+        'extract-user-warnings-templates-tokens',
+        help='Extract the tokens of the templates of the users warnings',
     )
     parser.add_argument(
         '--only-last-revision',
@@ -278,7 +285,13 @@ def configure_subparsers(subparsers):
     parser.add_argument(
         '--esclude-template-repetition',
         action='store_true',
-        help='It does not return a revision if the same template was previously declared ',
+        help='It does not return a revision if the same template was previously declared',
+    )
+    parser.add_argument(
+        '--language',
+        choices={'italian', 'catalan', 'spanish', 'english'},
+        required=True,
+        help='Language of the analyzed dump',
     )
     parser.set_defaults(func=main)
 
@@ -297,11 +310,7 @@ def main(
             'revisions_analyzed': 0,
             'pages_analyzed': 0,
         },
-        'templates': {
-            'total': 0,  # total number of templates analyzed
-            'amount_of_user_warnings:': len(user_warnings_templates),
-            'stats': dict() # stats per template
-        },
+        'user_warnings_templates': dict() # maybe the top 5 or all the best templates
     }
 
     pages_generator = extract_pages(
@@ -309,13 +318,14 @@ def main(
         stats=stats,
         only_last_revision=args.only_last_revision,
         set_interval=args.set_interval,
-        esclude_template_repetition=args.esclude_template_repetition
+        esclude_template_repetition=args.esclude_template_repetition,
+        language=args.language
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict()))
+        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
