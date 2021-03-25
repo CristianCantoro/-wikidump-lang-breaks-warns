@@ -9,5 +9,6 @@ from . import (
     wikilink_extractor,
     known_languages_extractor,
     wikibreak_extractor,
-    user_warning_templates
+    user_warnings_templates,
+    user_warnings_extractor
 )

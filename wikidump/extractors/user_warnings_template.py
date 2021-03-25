@@ -113,9 +113,9 @@ def userwarnings_regex_extractor(text: str) -> str:
     # remove the noinclude elements
     wikicode = remove_no_include(wikicode)
     # keep onlyinclude if present
-    wikicode, only_include_present = keep_only_includes(wikicode)
+    wikicode = keep_only_includes(wikicode)
     # keep or remove the include_only tags
-    wikicode = keep_or_include_include_only(wikicode, only_include_present)
+    wikicode = keep_or_include_include_only(wikicode)
     # regex escape
     wikicode = regex_escape_text(str(wikicode))
     to_subst = list()   # what to substitute from the document text
@@ -176,7 +176,7 @@ def remove_no_include(wikicode: mwparserfromhell.wikicode.Wikicode) -> mwparserf
                 pass
     return wikicode
 
-def keep_only_includes(wikicode: mwparserfromhell.wikicode.Wikicode) -> [mwparserfromhell.wikicode.Wikicode, bool]:
+def keep_only_includes(wikicode: mwparserfromhell.wikicode.Wikicode) -> mwparserfromhell.wikicode.Wikicode:
     """Keeps only the onlyincludes tags if any"""
     only_include_present = False
     to_remove = list()
@@ -192,26 +192,13 @@ def keep_only_includes(wikicode: mwparserfromhell.wikicode.Wikicode) -> [mwparse
             except ValueError:
                 pass
     wikicode =  mwparserfromhell.parse(re.sub(onlyinclude_tag, '', str(wikicode)))
-    return wikicode, only_include_present
+    return wikicode
 
-def keep_or_include_include_only(wikicode: mwparserfromhell.wikicode.Wikicode, remove_tags: bool) -> mwparserfromhell.wikicode.Wikicode:
+def keep_or_include_include_only(wikicode: mwparserfromhell.wikicode.Wikicode) -> mwparserfromhell.wikicode.Wikicode:
     """
     If there is an onlyinclude tag, the function removes the includeonly tags but not the content of them (remove_tags set o true)
-    If there are no onlyinclude tags (remove_tags set to false) then it keeps only the content of the includeonly tags
+    If there are no onlyinclude tags (remove_tags set to false) then it keeps the content of the includeonly tags
     """
-    if remove_tags:
-        to_remove = list()
-        for tag in wikicode.filter_tags(recursive=False):
-            if tag.tag.matches('includeonly'):
-                only_include_present = True
-            else:
-                to_remove.append(tag)
-        if only_include_present:
-            for tag in to_remove:
-                try:
-                    wikicode.remove(tag)
-                except ValueError:
-                    pass
     wikicode = mwparserfromhell.parse(re.sub(include_only_tag, '', str(wikicode)))
     return wikicode
 

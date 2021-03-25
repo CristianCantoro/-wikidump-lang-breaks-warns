@@ -1,4 +1,4 @@
-"""Extract the language known by the registered users in Wikipedia and some statistics about them"""
+"""Extract the user warnings templates and the options specified in user talk pages"""
 
 import collections
 import json
@@ -16,15 +16,14 @@ MonkeyPatch.patch_fromisoformat()
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the user page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, wikibreaks: Iterable[extractors.wikibreaks.Wikibreak], 
-        num_wikibreaks: int, at_least_one_parameter: bool, template_occurences: Mapping):
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, user_warnings: Iterable[extractors.user_warnings.UserWarning], 
+        num_user_warnings: int, at_least_one_parameter: bool):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
-        self.wikibreaks = wikibreaks                                # set of wikibreaks
-        self.num_wikibreaks = num_wikibreaks                        # number of wikibreaks
-        self.at_least_one_parameter = at_least_one_parameter        # boolean value which tells if contains a wikibreak with at least a parameter
-        self.template_occurences = template_occurences              # categories and subcategories of the templates used and a boolean value if they have parameters or not
+        self.user_warnings = user_warnings                          # set of user warnings
+        self.num_user_warnings = num_user_warnings                  # number of user warnings
+        self.at_least_one_parameter = at_least_one_parameter        # boolean value which tells if contains an user warnings with at least a parameter
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -38,19 +37,19 @@ class Revision:
         obj['user_id'] = user_id
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
-        obj['wikibreaks'] = list()
-        for w_b in self.wikibreaks:
-            obj['wikibreaks'].append(w_b.to_dict())
+        obj['user_warnings'] = list()
+        for u_w in self.user_warnings:
+            obj['user_warnings'].append(u_w.to_dict())
         return obj
 
 class Page:
     """Class which represent a page containing a list of revisions"""
-    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision], num_wikibreaks: int):
-        self.id = id                            # page id
-        self.namespace = namespace              # page namespace
-        self.title = title                      # page title
-        self.revisions = revisions              # list of revisions
-        self.num_wikibreaks = num_wikibreaks    # number of wikibreaks
+    def __init__(self, id: str, namespace: str, title: str, revisions: Iterator[Revision], num_user_warnings: int):
+        self.id = id                                    # page id
+        self.namespace = namespace                      # page namespace
+        self.title = title                              # page title
+        self.revisions = revisions                      # list of revisions
+        self.num_user_warnings = num_user_warnings      # number of user warnings
 
     def to_dict(self) -> Mapping:
         """Converts the object instance into a dictionary"""
@@ -67,7 +66,7 @@ def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
         only_last_revision: bool,
-        only_revisions_with_wikibreaks: bool) -> Iterator[Revision]:
+        only_revisions_with_user_warnings: bool) -> Iterator[Revision]:
     
     """Extracts the known languages within a user page or user talk page."""
     revisions = more_itertools.peekable(mw_page)
@@ -84,37 +83,27 @@ def extract_revisions(
         # remove html comments
         text = utils.remove_comments(mw_revision.text or '')
 
-        # It extracts a the wikibreak name and its parameters
-        wikibreaks = list()
+        # It extracts a the user warning name and its parameters
+        user_warnings = list()
         at_least_one_parameter_template_counter = 0      # number of parametrized templates
-        template_occurences = dict()                     # template category and subcategory and if they have a parameter or not
 
-        for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text):
-            wikibreaks.append(wikibreak)
-            at_least_one_parameter_template_counter += int(wikibreak.at_least_one_parameter)    # count the number of parametrized templates
-            for category in wikibreak.wikibreak_category:
-                if not category in template_occurences:
-                    template_occurences[category] = { 'at_least_a_parameter': False, 'is_category': True} # add the category
-                # save the category and if they come at least one time parametrized
-                template_occurences[category]['at_least_a_parameter'] = template_occurences[category]['at_least_a_parameter'] or wikibreak.at_least_one_parameter   
-            if not wikibreak.wikibreak_subcategory in template_occurences:
-                template_occurences[wikibreak.wikibreak_subcategory] = { 'at_least_a_parameter': False, 'is_category': False }
-            # save the subcategory and if they come at least one time parametrized
-            template_occurences[wikibreak.wikibreak_subcategory]['at_least_a_parameter']= template_occurences[wikibreak.wikibreak_subcategory]['at_least_a_parameter'] or wikibreak.at_least_one_parameter
+        # populate the list of user warnings and count how many templates have at least a parameter
+        for user_w, _ in extractors.user_warnings.user_warnings_extractor(text):
+            user_warnings.append(user_w)
+            at_least_one_parameter_template_counter += int(user_w.at_least_one_parameter)    # user has at least a parametrized user warnings templates
 
         # Update stats
-        stats['wikibreaks']['templates'] += len(wikibreaks)
-        stats['wikibreaks']['templates_at_least_one_parameter'] += at_least_one_parameter_template_counter
+        stats['user_warnings']['templates'] += len(user_warnings)
+        stats['user_warnings']['templates_at_least_one_parameter'] += at_least_one_parameter_template_counter
 
         # Build the revision
         rev = Revision(
             id=mw_revision.id,
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
-            wikibreaks=wikibreaks,
-            num_wikibreaks=len(wikibreaks),
+            user_warnings=user_warnings,
+            num_user_warnings=len(user_warnings),
             at_least_one_parameter=(at_least_one_parameter_template_counter > 0),
-            template_occurences=template_occurences
         )
 
         # Check the oldest revisions possible
@@ -134,15 +123,15 @@ def extract_revisions(
 
         # requested only the last revision
         if only_last_revision:
-            # asked for revisions with languages
-            if only_revisions_with_wikibreaks:
-                # has the languages list not empty
-                if newest_revision.wikibreaks and is_last_revision:
+            # asked for revisions with user warnings
+            if only_revisions_with_user_warnings:
+                # has the user warning list not empty
+                if newest_revision.user_warnings and is_last_revision:
                     yield newest_revision
             elif is_last_revision:
                 yield newest_revision
-        elif only_revisions_with_wikibreaks:
-            if wikibreaks:
+        elif only_revisions_with_user_warnings:
+            if user_warnings:
                 yield rev
         else:
             yield rev
@@ -151,94 +140,99 @@ def extract_pages(
         dump: Iterable[mwxml.Page],
         stats: Mapping,
         only_last_revision: bool,
-        only_pages_with_wikibreaks: bool,
-        only_revisions_with_wikibreaks: bool) -> Iterator[Page]:
+        only_pages_with_user_warnings: bool,
+        only_revisions_with_user_warnings: bool) -> Iterator[Page]:
     """Extract wikibreaks from an user page."""
 
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
         
-        # Skip non-(user pages or ser talk page), according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
-        if mw_page.namespace != 2 and mw_page.namespace != 3:
-            utils.log('Skipped (namespace != 2 and namespace != 3)')
+        # Skip non-user talk page, according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
+        if mw_page.namespace != 3:
+            utils.log('Skipped namespace != 3')
             continue
         
         revisions_generator = extract_revisions(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
-            only_revisions_with_wikibreaks=only_revisions_with_wikibreaks
+            only_revisions_with_user_warnings=only_revisions_with_user_warnings
         )
 
+        # list of revisions
         revisions_list = list(revisions_generator)
 
-        num_wikibreaks = 0  # number of wikibreaks
+        num_user_warnings = 0               # number of user warnings totally encountered
         users_at_least_parameter = False    # the user has at least a template with at least a parameter
-        categories_occurences = dict()      # categories and subcategories dictionary. It contains the number of user who have used them and the number of user who have used them with at leas a parameter
+        template_occurences = dict()        # template dictionary, template which contains each template and the number of users who have it in their user talk page and the number
+                                            # of user who have it in their talk page with at least a parameter
         for rev in revisions_list:
-            # number of wikibreaks
-            num_wikibreaks += rev.num_wikibreaks
-            # if this is a user who have been in wikipause and has specified the 
+            # number of user warnings
+            num_user_warnings += rev.num_user_warnings
+            # have at least a user warnings with a parameter
             users_at_least_parameter = users_at_least_parameter or rev.at_least_one_parameter
-            # update stats related to the occurrences of a category or a template (calculated per user)
-            for category in rev.template_occurences:
-                if not category in categories_occurences:
-                    categories_occurences[category] = {'total': False, 'with_params': False, 'is_category': rev.template_occurences[category]['is_category']}
-                # total number of users who have been on wikibreak using that wikibreak category at least once 
-                categories_occurences[category]['total'] = True          
-                # total number of users who have been on wikibreak using that wikibreak category at least once with at least a parameter                                                                                   
-                categories_occurences[category]['with_params'] = categories_occurences[category]['with_params'] or rev.template_occurences[category]['at_least_a_parameter']
+            # update stats related to the the template, if it is present at least one time in the user talk page and if it have ever had a parameter
+            for u_w in rev.user_warnings:
+                if not u_w.user_warning_name in template_occurences:
+                    template_occurences[u_w.user_warning_name] = {'total': False, 'with_params': False, 'lang': u_w.lang}
+                # it has occurred
+                template_occurences[u_w.user_warning_name]['total'] = True          
+                # it has occurred with at least a parameter                                                                                   
+                template_occurences[u_w.user_warning_name]['with_params'] = template_occurences[u_w.user_warning_name]['with_params'] or u_w.at_least_one_parameter
 
         page = Page(
             id=mw_page.id,
             namespace=mw_page.namespace,
             title=mw_page.title,
             revisions=revisions_list,
-            num_wikibreaks=num_wikibreaks
+            num_user_warnings=num_user_warnings
         )
 
         # stats update
-        stats['wikibreaks']['users_at_least_parameter'] += int(users_at_least_parameter)
-        for category in categories_occurences:
-            if categories_occurences[category]['is_category']:
-                if not category in stats['wikibreaks']['user_categories_occurences']:
-                    stats['wikibreaks']['user_categories_occurences'][category] = {'total': False, 'with_params': False}
-                stats['wikibreaks']['user_categories_occurences'][category]['total'] += int(categories_occurences[category]['total'])
-                stats['wikibreaks']['user_categories_occurences'][category]['with_params'] += int(categories_occurences[category]['with_params'])
-            else:
-                if not category in stats['wikibreaks']['user_subcategories_occurences']:
-                    stats['wikibreaks']['user_subcategories_occurences'][category] = {'total': False, 'with_params': False}
-                stats['wikibreaks']['user_subcategories_occurences'][category]['total'] += int(categories_occurences[category]['total'])
-                stats['wikibreaks']['user_subcategories_occurences'][category]['with_params'] += int(categories_occurences[category]['with_params'])
+        stats['user_warnings']['users_at_least_parameter'] += int(users_at_least_parameter)
+        for u_w in template_occurences:
+            lang = template_occurences[u_w]['lang']
+            if lang not in stats['user_warnings']['user_template_occurences']:
+                # all the templates in that language are inserted with 0 occurences and 0 occurences with paramters
+                stats['user_warnings']['user_template_occurences'][lang] = dict()
+                for template in extractors.user_warnings.lang_dict[lang]:
+                    stats['user_warnings']['user_template_occurences'][lang][template] = { 'user_talk_occurences': 0, 'user_talk_occurences_with_params': 0 }
+            # the user had or have that template with or without paramters
+            stats['user_warnings']['user_template_occurences'][lang][u_w]['user_talk_occurences'] += int(template_occurences[u_w]['total'])
+            stats['user_warnings']['user_template_occurences'][lang][u_w]['user_talk_occurences_with_params'] += int(template_occurences[u_w]['with_params'])
 
+         
         # Return only the pages with at least one wikibreak if the flag's active
-        if only_pages_with_wikibreaks:
-            if page.num_wikibreaks > 0:
-                stats['wikibreaks']['users'] += 1
+        if only_pages_with_user_warnings:
+            if page.num_user_warnings > 0:
+                stats['user_warnings']['users'] += 1
                 yield page
         else:
-            if page.num_wikibreaks > 0:
-                stats['wikibreaks']['users'] += 1
+            if page.num_user_warnings > 0:
+                stats['user_warnings']['users'] += 1
             yield page
     
+        if stats['user_warnings']['users'] > 0:
+            break
+
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
-        'extract-wikibreaks',
-        help='Extract the languages known by the users',
+        'extract-user-warnings',
+        help='Extract the user warnings information of the transcluded templates',
     )
     parser.add_argument(
-        '--only-pages-with-wikibreaks',
+        '--only-pages-with-user-warnings',
         action='store_true',
-        help='Consider only the pages with at least a revision which contains a wikibreak.',
+        help='Consider only the pages with at least an user warning.',
     )
     parser.add_argument(
-        '--only-revisions-with-wikibreaks',
+        '--only-revisions-with-user-warnings',
         action='store_true',
-        help='Consider only the revisions with contain at least a wikibreak.',
+        help='Consider only the revisions with contain at least an user warning.',
     )
     parser.add_argument(
         '--only-last-revision',
@@ -262,13 +256,12 @@ def main(
             'revisions_analyzed': 0,
             'pages_analyzed': 0,
         },
-        'wikibreaks': {
-            'users': 0,                                 # users that have specified a wikibreak or other similiar templates at least one time during their wikilife
-            'users_at_least_parameter': 0,              # users that have specified a wikibreak or other similar templates least one time during their wikilife with at least one parameter
-            'templates': 0,                             # wikibreaks or similar templates encountered, in any revision of any user
-            'templates_at_least_one_parameter': 0,      # wikibreaks or similar templates encountered, in any revision of any user, with at least one parameter
-            'user_categories_occurences': dict(),       # category dictionary. It contains the number of user who have used them and the number of user who have used them with at leas a parameter
-            'user_subcategories_occurences': dict(),    # subcategories dictionary. It contains the number of user who have used them and the number of user who have used them with at leas a parameter
+        'user_warnings': {
+            'users': 0,                                 # users that have at least a user warning in their talk page
+            'users_at_least_parameter': 0,              # users that have at least a user warning in their talk page with at least one parameter
+            'templates': 0,                             # user warnings or similar templates encountered, in any revision of any user
+            'templates_at_least_one_parameter': 0,      # user warnings templates encountered, in any revision of any user, with at least one parameter
+            'user_template_occurences': dict(),         # template dictionary. It contains the number of user who have used them and the number of user who have used them with at least a parameter
         },
     }
 
@@ -276,8 +269,8 @@ def main(
         dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
-        only_pages_with_wikibreaks=args.only_pages_with_wikibreaks,
-        only_revisions_with_wikibreaks=args.only_revisions_with_wikibreaks
+        only_pages_with_user_warnings=args.only_pages_with_user_warnings,
+        only_revisions_with_user_warnings=args.only_revisions_with_user_warnings
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()

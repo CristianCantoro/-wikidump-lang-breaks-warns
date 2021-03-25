@@ -1,4 +1,4 @@
-"""Extract the language known by the registered users in Wikipedia and some statistics about them"""
+"""Extract the the wikibreaks option in the user page and user talk page"""
 
 import collections
 import json
@@ -40,6 +40,7 @@ class Revision:
         obj['timestamp'] = self.timestamp
         obj['wikibreaks'] = list()
         for w_b in self.wikibreaks:
+            print('Sto leggenedo:', w_b)
             obj['wikibreaks'].append(w_b.to_dict())
         return obj
 
@@ -69,7 +70,7 @@ def extract_revisions(
         only_last_revision: bool,
         only_revisions_with_wikibreaks: bool) -> Iterator[Revision]:
     
-    """Extracts the known languages within a user page or user talk page."""
+    """Extracts the wikibreaks within a user page or user talk page."""
     revisions = more_itertools.peekable(mw_page)
 
     # Newest revisions, useful only if the only_last_revision flag is set equal to true
@@ -90,6 +91,7 @@ def extract_revisions(
         template_occurences = dict()                     # template category and subcategory and if they have a parameter or not
 
         for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text):
+            print('Lol per wikibreak')
             wikibreaks.append(wikibreak)
             at_least_one_parameter_template_counter += int(wikibreak.at_least_one_parameter)    # count the number of parametrized templates
             for category in wikibreak.wikibreak_category:
@@ -134,9 +136,9 @@ def extract_revisions(
 
         # requested only the last revision
         if only_last_revision:
-            # asked for revisions with languages
+            # asked for revisions with wikibreaks
             if only_revisions_with_wikibreaks:
-                # has the languages list not empty
+                # has the wikibreaks list not empty
                 if newest_revision.wikibreaks and is_last_revision:
                     yield newest_revision
             elif is_last_revision:
@@ -224,6 +226,9 @@ def extract_pages(
     
         stats['performance']['pages_analyzed'] += 1
 
+        if stats['wikibreaks']['users'] > 0:
+            break
+
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(
@@ -283,7 +288,7 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict()))
+        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()

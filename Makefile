@@ -19,10 +19,10 @@ ZHWIKI := zhwiki
 # PROGRAMS AND FLAGS
 PYFLAGS := -m
 PROGRAM := wikidump
-OUTPUT_FOLDER := output_user_warnings_templates
+OUTPUT_FOLDER := output_user_warnings
 PROGRAM_FLAGS := --output-compression gzip
-FUNCTION_TO_RUN := extract-user-warnings-templates
-FUNCTION_SUB_COMMANDS := --set-interval '1 week' --esclude-template-repetition
+FUNCTION_TO_RUN := extract-user-warnings
+FUNCTION_SUB_COMMANDS := --only-pages-with-user-warnings
 PYTHON := python3
 PIP := pip
 DUMP_EXT := .7z
