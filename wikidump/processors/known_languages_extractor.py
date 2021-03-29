@@ -188,10 +188,6 @@ def extract_pages(
             stats['users']['total'] += 1
             yield page
 
-        # TO REMOVE
-        if stats['users']['total'] > 0:
-            break
-
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):

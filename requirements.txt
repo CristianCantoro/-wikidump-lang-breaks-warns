@@ -17,6 +17,7 @@ mwxml==0.2.0
 networkx==1.11
 nltk==3.5
 para==0.0.5
+pyahocorasick==1.4.2
 PyMySQL==0.7.1
 python-Levenshtein==0.12.2
 pystemmer==2.0.1

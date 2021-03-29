@@ -51,7 +51,7 @@ python -m wikidump dumps/cawiki/20210201/cawiki-20210201-pages-meta-history.xml.
 
 ### Retrieve options and occurences of the user warnings transcluded templates
 
-If you are interested in extracting the options and occurrences of the `[transcluded`](https://simple.wikipedia.org/wiki/Wikipedia:Transclusion) user warnings templates (not replaced with the `subst` function) counted by user talk page, you can run the following python command:
+If you are interested in extracting the options and occurrences of the [`transcluded`](https://en.wikipedia.org/wiki/Wikipedia:Transclusion) user warnings templates (not replaced with the `subst` function) counted by user talk page, you can run the following python command:
 
 ```sh
 python -m wikidump dumps/cawiki/20210201/cawiki-20210201-pages-meta-history.xml.7z output_user_warnings_transcluded --output-compression gzip extract-user-warnings --only-pages-with-user-warnings

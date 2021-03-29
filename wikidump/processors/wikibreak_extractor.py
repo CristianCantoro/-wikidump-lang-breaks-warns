@@ -226,9 +226,6 @@ def extract_pages(
     
         stats['performance']['pages_analyzed'] += 1
 
-        if stats['wikibreaks']['users'] > 0:
-            break
-
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
     parser = subparsers.add_parser(

@@ -102,7 +102,22 @@ Test: passed
 So, as imagined the noinclude is not considered
 """
 
-
+# this produces: https://regex101.com/r/CoSTLw/1
+def userwarnings_regex_extractor(text: str) -> str:
+    # list of parameters
+    parameters = set()
+    # templates which could be substituted
+    sub_templates = set()
+    # prova
+    wikicode = mwparserfromhell.parse(text)
+    # remove the noinclude elements
+    wikicode = remove_no_include(wikicode)
+    # keep onlyinclude if present
+    wikicode = keep_only_includes(wikicode)
+    # keep or remove the include_only tags
+    wikicode = keep_or_include_include_only(wikicode)
+    # regex escape
+    wikicode = regex_escape_text(str(wikicode))
     to_subst = list()   # what to substitute from the document text
     option_counter = 0  # option counter
     # Options identification todo see if it can be modified with the parser from hell

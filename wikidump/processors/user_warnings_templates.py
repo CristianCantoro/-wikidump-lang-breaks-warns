@@ -253,8 +253,6 @@ def extract_pages(
 
         yield page
 
-        break
-
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):

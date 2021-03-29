@@ -212,9 +212,6 @@ def extract_pages(
             if page.num_user_warnings > 0:
                 stats['user_warnings']['users'] += 1
             yield page
-    
-        if stats['user_warnings']['users'] > 0:
-            break
 
         stats['performance']['pages_analyzed'] += 1
 
