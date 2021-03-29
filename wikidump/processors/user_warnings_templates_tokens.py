@@ -258,7 +258,7 @@ def extract_pages(
             elif rev_storage_size <= MAX_REVISION_CACHE:
                 # replace some revisions
                 min_length = min(rev_storage_size, filtered_rev_size)
-                for i in random.randrange(min_length):
+                for i in range(random.randrange(min_length)):
                     REVISION_STORAGE[i] = filtered_revisions_list[i]
             else:
                 # fill and replace some revisions
@@ -278,7 +278,7 @@ def extract_pages(
 
             # extended corpus
             for index in range(len(filtered_revisions_list)):
-                extended_corpus.append(REVISION_STORAGE[random.randint(0, rev_range_size - 1)])
+                extended_corpus.append(REVISION_STORAGE[random.randrange(rev_range_size)])
 
             # element occur in document
             is_in_document_dict = dict()
