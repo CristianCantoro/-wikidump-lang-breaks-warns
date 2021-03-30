@@ -81,8 +81,8 @@ def userwarnings_words_extractor(text: str, language: str) -> UserWarningTf:
     wikicode = clean_string(str(wikicode))
     # remove stop words
     wikicode = remove_stop_words(wikicode, language)
-    # stream words
-    wikicode = stream_words(wikicode, language)
+    # NOTE: no streamming for now. words
+    # wikicode = stream_words(wikicode, language)
     # count the occurences of each word
     words = word_tokenize(wikicode)
     # words dictionary

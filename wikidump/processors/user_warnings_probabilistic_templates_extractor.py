@@ -20,11 +20,10 @@ MonkeyPatch.patch_fromisoformat()
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the user talk page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, text: str, timestamp: str, templates: Iterable[extractors.user_warnings_probabilistic_subst.UserWarningTokens]):
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, templates: Iterable[extractors.user_warnings_probabilistic_subst.UserWarningTokens]):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
-        self.text = text                                            # revision text
         self.templates = templates                                  # list of probable user warning templates in that user talk page
 
     def to_dict(self) -> str:
@@ -39,7 +38,6 @@ class Revision:
         obj['user_id'] = user_id
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
-        obj['text'] = self.text
         obj['templates'] = list()
         for temp in self.templates:
             obj['templates'].append(temp.to_dict())
@@ -78,29 +76,39 @@ def input_reader(path: str):
     else:
         return open(path, 'rt')
 
-# todo to delete if a better way is found
+# todo to delete if there's a better way
 def extract_templates_words(files: Iterable[pathlib.Path]) -> Mapping:
-    """Returns a dictionary where the key is the name of the template and the value is a list of list of words which characterize that template the most"""
+    """Returns a dictionary where the key is the name of the template and the value is a list of list of words which characterize that template the most and the revision timestamp"""
     template_dictionary = dict()
     utils.log("Preparing the templates dictionary..")
     for file_name in files:
         file = input_reader(file_name)
-        for line in file:
-            template_page = json.loads(line.decode('utf-8'))
-            template_dictionary[template_page.title] = list() # key = name of the template
-            for rev in template_page.revisions: # for each revision
-                template_dictionary[template_page.title].append(rev.words_to_search)    # concatenate each words to find (list of lists)
+        try:   # todo remove the try catch
+            for line in file:
+                template_page = json.loads(line)
+                template_dictionary[template_page['title']] = list() # key = name of the template
+                for rev in template_page['revisions']: # for each revision
+                    template_dictionary[template_page['title']].append((rev['words_to_search'], rev['timestamp']))    # concatenate each words to find (list of lists)
+        except:
+            pass
         file.close()
     return template_dictionary
 
 def build_trie(template_dictionary: Mapping) -> ahocorasick.Automaton:
     """Function which builds the trie from the previous mapping"""
     trie = ahocorasick.Automaton()
-    for template in template_dictionary:
-        for words_list in template_dictionary[template]:
-            for word in words_list:
-                trie.add_word(word, (template, word))   # key is the word to search, value is the template
-    trie.make_automaton()
+    word_set = set()
+    with open('words_to_seach.txt', 'w') as f:
+        for template in template_dictionary:
+            for words_list,_ in template_dictionary[template]:
+                for word in words_list:
+                    trie.add_word(word, (template, word))   # key is the word to search, value is the template
+                    word_set.add(word)
+        for word in word_set:
+            f.write(word + '\n')
+        trie.make_automaton()
+
+    exit(0)
     return trie
 
 def extract_revisions(
@@ -132,6 +140,7 @@ def extract_revisions(
         templates = extractors.user_warnings_probabilistic_subst.extract_probabilistic_user_warning_templates(
             text, 
             language,
+            mw_revision.timestamp.to_json(),
             template_trie, 
             templates_dictionary
         )
@@ -140,7 +149,6 @@ def extract_revisions(
         rev = Revision(
             id=mw_revision.id,
             user=mw_revision.user,
-            text=text,
             timestamp=mw_revision.timestamp.to_json(),
             templates=templates,
         )
@@ -236,6 +244,9 @@ def extract_pages(
                 stats['user_warnings_stats']['total'] += 1
             yield page
     
+        if stats['user_warnings_stats']['total'] > 0:
+            break
+
         stats['performance']['pages_analyzed'] += 1
 
 def configure_subparsers(subparsers):
@@ -245,7 +256,7 @@ def configure_subparsers(subparsers):
         help='Extract the possible templates substituted in a user talk page',
     )
     parser.add_argument(
-        'templates-token-output',
+        'tokens',
         metavar='FILE',
         type=pathlib.Path,
         nargs='+',
@@ -294,10 +305,10 @@ def main(
             'template_recognized': dict()   # templates and its usage
         }
     }
-
+    
     # dictionary which stores the words which needs to be searched in order to establish if a certain template has been substituted there
     templates_dictionary = extract_templates_words(
-        files=args.templates_token_output,
+        files=args.tokens,
     )
 
     # build a trie
@@ -317,7 +328,7 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict()))
+        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()

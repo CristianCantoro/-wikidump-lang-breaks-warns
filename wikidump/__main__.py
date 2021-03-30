@@ -100,6 +100,7 @@ def get_args():
     processors.user_warnings_templates.configure_subparsers(subparsers)
     processors.user_warnings_extractor.configure_subparsers(subparsers)
     processors.user_warnings_templates_tokens.configure_subparsers(subparsers)
+    processors.user_warnings_probabilistic_templates_extractor.configure_subparsers(subparsers)
 
     parsed_args = parser.parse_args()
     if 'func' not in parsed_args:

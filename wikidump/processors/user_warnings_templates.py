@@ -57,11 +57,10 @@ user_warnings_templates = set(
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the template page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, text: str, timestamp: str, templates: extractors.user_warnings_template.UserWarningTemplate):
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, templates: extractors.user_warnings_template.UserWarningTemplate):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
-        self.text = text                                            # revision text
         self.templates = templates                                  # list of regex for that particular template and the parameters of that template
 
     def to_dict(self) -> str:
@@ -76,7 +75,6 @@ class Revision:
         obj['user_id'] = user_id
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
-        obj['text'] = self.text
         obj['templates'] = self.templates.to_dict()
         return obj
 
@@ -131,7 +129,6 @@ def extract_revisions(
         rev = Revision(
             id=mw_revision.id,
             user=mw_revision.user,
-            text=text,
             timestamp=mw_revision.timestamp.to_json(),
             templates=templates,
         )

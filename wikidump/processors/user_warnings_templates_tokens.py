@@ -245,6 +245,9 @@ def extract_pages(
             # no tag selected
             filtered_revisions_list = revisions_list
 
+        # filter out the empty revisions
+        filtered_revisions_list = [ rev for rev in filtered_revisions_list if rev.template_info.total_number_words != 0 ]
+
         if store_flag:
 
             # REVISION STORAGE update
