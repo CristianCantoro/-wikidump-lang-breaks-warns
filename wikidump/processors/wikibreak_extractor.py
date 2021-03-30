@@ -91,7 +91,6 @@ def extract_revisions(
         template_occurences = dict()                     # template category and subcategory and if they have a parameter or not
 
         for wikibreak, _ in extractors.wikibreaks.wikibreaks_extractor(text):
-            print('Lol per wikibreak')
             wikibreaks.append(wikibreak)
             at_least_one_parameter_template_counter += int(wikibreak.at_least_one_parameter)    # count the number of parametrized templates
             for category in wikibreak.wikibreak_category:

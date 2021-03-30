@@ -107,8 +107,6 @@ def build_trie(template_dictionary: Mapping) -> ahocorasick.Automaton:
         for word in word_set:
             f.write(word + '\n')
         trie.make_automaton()
-
-    exit(0)
     return trie
 
 def extract_revisions(

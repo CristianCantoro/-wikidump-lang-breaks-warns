@@ -4,30 +4,30 @@ wikibreak_considering_retirement = ["يفكر بالتقاعد", "considering re
 wikibreak_off_and_on = ["wikibreak chập chờn", "بەکارھێنەری ویکی پشوو", "على نحو متقطع", "off and on wikibreak"]
 
 # BREAK CATEGORY
-wikibreak_standard_words = ["exàmens", "inactiu", "user wikibreak", "user wikibreak wide", "esami", "utente malato", "malattia scherzo", "occupato 2", "occupato", "tentata wikipausa", "wikipausa motivo", "wikipausa corta", "wikipausa lunga", "vacanche", "ویکی-پشوو", "usuario ausente", "ვიკიშვებულება", "отпуск", "viki-taʼtil", "ঝিরানি", "wikilèrèn", "חופשת ויקי", "cutiwiki", "wikibreak", "wiki-dowol", "vikipaŭzo", "விக்கி விடுப்பு", "wikiloma", "විකි-විරාමය", "уики-демалыс", "vikiatostogos", "wikipushim", "вікіадпачынак", "พักผ่อน", "vikiodmor", "уики-өргүү", "wikivacanță", "վիքիարձակուրդ", "вики-каныш", "відпустка", "paus", "వికీసెలవు", "викиодмор", "위키휴가", "wikipause", "i̇stifadəçi/vikitətil", "ویکی‌مرخصی", "викирухсатӣ", "вики-отпуск", "wikipausa", "উইকিছুটি", "вики-ял", "wikiszabi", "wikidormia", "wiki-tatil", "vikimola", "wikiodmor", "viquidescans", "विकिसुट्टी"]
+wikibreak_standard_words = ["usuari inactiu", "inactiu", "user wikibreak", "user wikibreak wide", "tentata wikipausa", "wikipausa motivo", "wikipausa corta", "wikipausa lunga", "vacanche", "ویکی-پشوو", "usuario ausente", "ვიკიშვებულება", "отпуск", "viki-taʼtil", "ঝিরানি", "wikilèrèn", "חופשת ויקי", "cutiwiki", "wikibreak", "wiki-dowol", "vikipaŭzo", "விக்கி விடுப்பு", "wikiloma", "විකි-විරාමය", "уики-демалыс", "vikiatostogos", "wikipushim", "вікіадпачынак", "พักผ่อน", "vikiodmor", "уики-өргүү", "wikivacanță", "վիքիարձակուրդ", "вики-каныш", "відпустка", "paus", "వికీసెలవు", "викиодмор", "위키휴가", "wikipause", "i̇stifadəçi/vikitətil", "ویکی‌مرخصی", "викирухсатӣ", "вики-отпуск", "wikipausa", "উইকিছুটি", "вики-ял", "wikiszabi", "wikidormia", "wiki-tatil", "vikimola", "wikiodmor", "viquidescans", "विकिसुट्टी"]
 wikibreak_in_house = ["wikibreak-in-house", "انقطاع بسبب حدث", "wikibreak trong nhà"]
 wikibreak_switch = ["wikibreak switch"]
 wikibreak_at_school = ["بەکارھێنەر لە قوتابخانەیە", "disekolah", "at school", "di sekolah", "atschool", "đi học"]
-wikibreak_exams = ["கல்வி விக்கிவிடுப்பு", "পরীক্ষা", "изпити", "exams", "i̇mtahan"]
-wikibreak_vacation = ["en vacances", "semester", "vacanze", "արձակուրդ3", "عطلة", "vakantie", "vacation", "ваканция3"]
+wikibreak_exams = ["esami", "exàmens", "கல்வி விக்கிவிடுப்பு", "পরীক্ষা", "изпити", "exams", "i̇mtahan"]
+wikibreak_vacation = ["wikivacaciones", "en vacances", "semester", "vacanze", "արձակուրդ3", "عطلة", "vakantie", "vacation", "ваканция3"]
 wikibreak_out_of_town = ["out of town"]
 wikibreak_personal_issue = ["probleme personale", "مشكلات شخصية", "personal issues", "ذاتی معاملات"]
 
 # HEALTH-RELATED
 wikibreak_user_bonked = ["bonked", "utbränd"]
 wikibreak_user_grieving = ["utilizator în doliu", "en deuil", "user grieving"]
-wikibreak_user_health_inactive = ["absence santé", "ปัญหาสุขภาพ", "user health inactive"]
+wikibreak_user_health_inactive = ["utente malato", "absence santé", "ปัญหาสุขภาพ", "user health inactive"]
 wikibreak_user_covid19 = ["off wiki Covid 19"]
 
 # MENTAL
-wikibreak_busy = ["upptekinn", "తీరిక లేదు", "bận", "pengguna sibuk", "มีธุระ", "جعبه کاربر/مشغول", "ocupat", "مشغول", "wikibreak débordé", "سەرقاڵ", "sibuk", "beschäftigt", "ব্যস্ত", "upptagen", "bô-êng", "busy", "druk", "vikiyoğun", "i zënë", "mashquul", "panganggo sibuk", "band"]
+wikibreak_busy = ["occupato 2", "occupato", "upptekinn", "తీరిక లేదు", "bận", "pengguna sibuk", "มีธุระ", "جعبه کاربر/مشغول", "ocupat", "مشغول", "wikibreak débordé", "سەرقاڵ", "sibuk", "beschäftigt", "ব্যস্ত", "upptagen", "bô-êng", "busy", "druk", "vikiyoğun", "i zënë", "mashquul", "panganggo sibuk", "band"]
 wikibreak_discouraged = ["discouraged", "descurajat", "kecewa", "අධෛර්යමත්වූ"]
 wikibreak_user_contempt = ["user contempt"]
 wikibreak_user_frustrated = ["user 洩氣", "user frustrated", "utilizator frustrat", "frustration"]
 
 # HEALTH-RELATED AND MENTAL
 wikibreak_user_stress = ["user stress", "utilizator stresat", "مضغوط", "سترێسی بەکارھێنەر", "stress"]
-wikibreak_user_mental_health = ["user warning-mentalhealth", "user mental health", "santé mentale"]
+wikibreak_user_mental_health = ["malattia scherzo", "user warning-mentalhealth", "user mental health", "santé mentale"]
 
 # TECHNICAL
 wikibreak_computer_death = ["computer death", "عطل في الحاسوب", "kapatèn komputer"]
@@ -125,9 +125,15 @@ wikibreak_fields_to_tuple_category_subcategory = {
         "category": [
             "break"
         ],
-        "subcategory": "wikibreak"
+        "subcategory": "exams"
     },
     "inactiu": {
+        "category": [
+            "break"
+        ],
+        "subcategory": "wikibreak"
+    },
+    "usuari inactiu": {
         "category": [
             "break"
         ],
@@ -149,31 +155,34 @@ wikibreak_fields_to_tuple_category_subcategory = {
         "category": [
             "break"
         ],
-        "subcategory": "wikibreak"
+        "subcategory": "exams"
     },
     "utente malato": {
         "category": [
-            "break"
+            "health related"
         ],
-        "subcategory": "wikibreak"
+        "subcategory": "user health inactive"
     },
     "malattia scherzo": {
-        "category": [
-            "break"
+       "category": [
+            [
+                "health related",
+                "mental"
+            ]
         ],
-        "subcategory": "wikibreak"
+        "subcategory": "user mental health"
     },
     "occupato 2": {
         "category": [
-            "break"
+            "mental"
         ],
-        "subcategory": "wikibreak"
+        "subcategory": "busy"
     },
     "occupato": {
         "category": [
-            "break"
+            "mental"
         ],
-        "subcategory": "wikibreak"
+        "subcategory": "busy"
     },
     "tentata wikipausa": {
         "category": [
@@ -578,6 +587,12 @@ wikibreak_fields_to_tuple_category_subcategory = {
         "subcategory": "vacation"
     },
     "vacanze": {
+        "category": [
+            "break"
+        ],
+        "subcategory": "vacation"
+    },
+    "wikivacaciones": {
         "category": [
             "break"
         ],
