@@ -74,7 +74,7 @@ def extract_probabilistic_user_warning_templates(
         words_list,_ = template_at_that_timestamp
         if words_found.issuperset(set(words_list)):
             # add the found template
-            templates_found.append(UserWarningTokens(template, list()))
+            templates_found.append(UserWarningTokens(template, words_list))
     return templates_found
 
 
@@ -97,6 +97,10 @@ def extract_probabilistic_user_warning_templates_last_revision(
     # build the template trie (not for a given timestamp but from the first timestamp to the last timestamp)
     template_trie, words_mapping = build_trie_from_to(templates_dictionary, timestamp_first, timestamp_last)
     
+    # No template available at that time
+    if not template_trie:
+        return list()
+
     # Search the words thanks to the rie and aho-corasick algorithm
     for _, (templates, word) in template_trie.iter(text):
         for referred_template in templates:
@@ -116,6 +120,10 @@ def extract_probabilistic_user_warning_templates_last_revision(
             if words_found.issuperset(set(words_list)):
                 # add the found template
                 templates_found.append(UserWarningTokens(template, words_list))
+                # exit the loop, because the template was found
+                break
+
+    return templates_found
 
 def build_trie_current_timestamp(template_dictionary: Mapping, timestamp: datetime.datetime) -> Union[ahocorasick.Automaton, Mapping]:
     """Function which builds the trie from the previous mapping by the specified timestamp"""

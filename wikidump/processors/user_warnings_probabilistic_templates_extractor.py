@@ -82,7 +82,7 @@ def extract_templates_words(files: Iterable[pathlib.Path]) -> Mapping:
     template_dictionary = dict()
     utils.log("Preparing the templates dictionary..")
     for file_name in files:
-        file = input_reader(file_name)
+        file = input_reader(str(file_name))
         try:   # todo remove the try catch
             for line in file:
                 template_page = json.loads(line)
@@ -116,6 +116,7 @@ def extract_revisions(
 
         # skip until I know the older date and the newest revision of the revision's list
         for mw_revision in revisions:
+            utils.dot()
             if not newest_revision:
                 newest_revision = mw_revision
             if not date_first_revision:
@@ -331,8 +332,6 @@ def main(
         templates_dictionary=templates_dictionary,
         language=args.language
     )
-
-    print(pages_generator)
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
