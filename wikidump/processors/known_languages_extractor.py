@@ -246,9 +246,6 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     # Number of unique languages known
-    print('Ci arrivooooo')
-    print(type(stats['users']['languages']))
-    print(len(stats['users']['languages']))
     stats['users']['flex'] = len(stats['users']['languages'])
 
     for obj in pages_generator:

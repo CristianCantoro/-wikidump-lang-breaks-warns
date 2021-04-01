@@ -164,7 +164,7 @@ def extract_pages(
         if mw_page.namespace != 2 and mw_page.namespace != 3:
             utils.log('Skipped (namespace != 2 and namespace != 3)')
             continue
-        
+
         revisions_generator = extract_revisions(
             mw_page,
             stats=stats,
@@ -198,7 +198,7 @@ def extract_pages(
             revisions=revisions_list,
             num_wikibreaks=num_wikibreaks
         )
-
+        
         # stats update
         stats['wikibreaks']['users_at_least_parameter'] += int(users_at_least_parameter)
         for category in categories_occurences:

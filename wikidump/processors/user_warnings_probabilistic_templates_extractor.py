@@ -11,6 +11,7 @@ import gzip
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 from backports.datetime_fromisoformat import MonkeyPatch
 import ahocorasick
+import time
 
 from .. import dumper, extractors, utils
 
@@ -65,7 +66,7 @@ class Page:
             obj['revisions'].append(rev.to_dict())
         return obj
 
-# TODO for now not in 7z
+# TODO do 7z reader
 def input_reader(path: str):
     compression = pathlib.Path(path).suffix
     """Open a compressed file, if it is compressed"""
@@ -76,7 +77,6 @@ def input_reader(path: str):
     else:
         return open(path, 'rt')
 
-# todo to delete if there's a better way
 def extract_templates_words(files: Iterable[pathlib.Path]) -> Mapping:
     """Returns a dictionary where the key is the name of the template and the value is a list of list of words which characterize that template the most and the revision timestamp"""
     template_dictionary = dict()
@@ -88,26 +88,11 @@ def extract_templates_words(files: Iterable[pathlib.Path]) -> Mapping:
                 template_page = json.loads(line)
                 template_dictionary[template_page['title']] = list() # key = name of the template
                 for rev in template_page['revisions']: # for each revision
-                    template_dictionary[template_page['title']].append((rev['words_to_search'], rev['timestamp']))    # concatenate each words to find (list of lists)
+                    template_dictionary[template_page['title']].append((rev['words_to_search'], datetime.datetime.fromisoformat(rev['timestamp'].replace('Z', '+00:00'))))    # concatenate each words to find (list of lists)
         except:
             pass
         file.close()
     return template_dictionary
-
-def build_trie(template_dictionary: Mapping) -> ahocorasick.Automaton:
-    """Function which builds the trie from the previous mapping"""
-    trie = ahocorasick.Automaton()
-    word_set = set()
-    with open('words_to_seach.txt', 'w') as f:
-        for template in template_dictionary:
-            for words_list,_ in template_dictionary[template]:
-                for word in words_list:
-                    trie.add_word(word, (template, word))   # key is the word to search, value is the template
-                    word_set.add(word)
-        for word in word_set:
-            f.write(word + '\n')
-        trie.make_automaton()
-    return trie
 
 def extract_revisions(
         mw_page: mwxml.Page,
@@ -115,7 +100,6 @@ def extract_revisions(
         only_last_revision: bool,
         only_pages_with_user_warnings: bool,
         only_revisions_with_user_warnings: bool,
-        template_trie: ahocorasick.Automaton(),
         templates_dictionary: Mapping,
         language: str) -> Iterator[Revision]:
     
@@ -124,60 +108,91 @@ def extract_revisions(
 
     # Newest revisions, useful only if the only_last_revision flag is set equal to true
     newest_revision = None
+    # date first revision 
+    date_first_revision = None
 
-    for mw_revision in revisions:
-        utils.dot()
+    # only for the last revision, I will explain it later
+    if only_last_revision:
 
-        # check if it's last revision
-        is_last_revision = not utils.has_next(revisions)
+        # skip until I know the older date and the newest revision of the revision's list
+        for mw_revision in revisions:
+            if not newest_revision:
+                newest_revision = mw_revision
+            if not date_first_revision:
+                date_first_revision = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
+            newest_date = datetime.datetime.fromisoformat(newest_revision.timestamp.to_json().replace('Z', '+00:00'))
+            current_date = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
+            if current_date > newest_date:
+                newest_revision = mw_revision
+            date_first_revision = min([date_first_revision, current_date])
 
         # remove html comments
-        text = utils.remove_comments(mw_revision.text or '')
+        text = utils.remove_comments(newest_revision.text or '')
 
         # entract the found templates
-        templates = extractors.user_warnings_probabilistic_subst.extract_probabilistic_user_warning_templates(
+        templates = extractors.user_warnings_probabilistic_subst.extract_probabilistic_user_warning_templates_last_revision(
             text, 
             language,
-            mw_revision.timestamp.to_json(),
-            template_trie, 
-            templates_dictionary
+            date_first_revision,
+            datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00')),
+            templates_dictionary,
         )
 
         # Build the revision
         rev = Revision(
-            id=mw_revision.id,
-            user=mw_revision.user,
-            timestamp=mw_revision.timestamp.to_json(),
+            id=newest_revision.id,
+            user=newest_revision.user,
+            timestamp=newest_revision.timestamp.to_json(),
             templates=templates,
         )
-
-        # Check the oldest revisions possible
-        if not newest_revision:
-            newest_revision = rev
-        else:
-            newest_date = datetime.datetime.fromisoformat(newest_revision.timestamp.replace('Z', '+00:00'))
-            current_date = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
-            # change the revision if the current one is newer
-            if newest_date < current_date:
-                newest_revision = rev
 
         # Update stats
         stats['performance']['revisions_analyzed'] += 1
 
-        # requested only the last revision
-        if only_last_revision:
+        return rev
+
+    else:
+        for mw_revision in revisions:
+            utils.dot()
+
+            # remove html comments
+            text = utils.remove_comments(mw_revision.text or '')
+
+            # entract the found templates
+            templates = extractors.user_warnings_probabilistic_subst.extract_probabilistic_user_warning_templates(
+                text, 
+                language,
+                mw_revision.timestamp.to_json(),
+                templates_dictionary,
+            )
+
+            # Build the revision
+            rev = Revision(
+                id=mw_revision.id,
+                user=mw_revision.user,
+                timestamp=mw_revision.timestamp.to_json(),
+                templates=templates,
+            )
+
+            # Check the oldest revisions possible
+            if not newest_revision:
+                newest_revision = rev
+            else:
+                newest_date = datetime.datetime.fromisoformat(newest_revision.timestamp.replace('Z', '+00:00'))
+                current_date = datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00'))
+                # change the revision if the current one is newer
+                if newest_date < current_date:
+                    newest_revision = rev
+
+            # Update stats
+            stats['performance']['revisions_analyzed'] += 1
+
             # asked for revisions with wikibreaks
             if only_revisions_with_user_warnings:
-                # has the wikibreaks list not empty
-                if newest_revision.templates and is_last_revision:
-                    yield newest_revision
-            elif is_last_revision:
-                yield newest_revision
-        elif only_revisions_with_user_warnings:
-            if templates:
+                if templates:
+                    yield rev
+            else:
                 yield rev
-        else:
-            yield rev
 
 def extract_pages(
         dump: Iterable[mwxml.Page],
@@ -185,7 +200,6 @@ def extract_pages(
         only_last_revision: bool,
         only_pages_with_user_warnings: bool,
         only_revisions_with_user_warnings: bool,
-        template_trie: ahocorasick.Automaton(),
         templates_dictionary: Mapping,
         language: str) -> Iterator[Page]:
     """Extract the probable templates within a user talk page using templates_dictionary."""
@@ -205,7 +219,6 @@ def extract_pages(
             only_last_revision=only_last_revision,
             only_pages_with_user_warnings=only_pages_with_user_warnings,
             only_revisions_with_user_warnings=only_revisions_with_user_warnings,
-            template_trie=template_trie,
             templates_dictionary=templates_dictionary,
             language=language
         )
@@ -309,19 +322,17 @@ def main(
         files=args.tokens,
     )
 
-    # build a trie
-    template_trie = build_trie(templates_dictionary)
-
     pages_generator = extract_pages(
         dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
         only_pages_with_user_warnings=args.only_pages_with_user_warnings,
         only_revisions_with_user_warnings=args.only_revisions_with_user_warnings,
-        template_trie=template_trie,
         templates_dictionary=templates_dictionary,
         language=args.language
     )
+
+    print(pages_generator)
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 

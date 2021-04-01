@@ -214,6 +214,7 @@ def extract_pages(
             yield page
 
         stats['performance']['pages_analyzed'] += 1
+        stats['user_warnings']['total_user_talk_pages'] += 1
 
 def configure_subparsers(subparsers):
     """Configure a new subparser for the known languages."""
@@ -259,7 +260,8 @@ def main(
             'templates': 0,                             # user warnings or similar templates encountered, in any revision of any user
             'templates_at_least_one_parameter': 0,      # user warnings templates encountered, in any revision of any user, with at least one parameter
             'user_template_occurences': dict(),         # template dictionary. It contains the number of user who have used them and the number of user who have used them with at least a parameter
-        },
+            'total_user_talk_pages': 0                  # total user talk pages analyzed
+        }
     }
 
     pages_generator = extract_pages(
