@@ -19,10 +19,10 @@ ZHWIKI := zhwiki
 # PROGRAMS AND FLAGS
 PYFLAGS := -m
 PROGRAM := wikidump
-OUTPUT_FOLDER := output_user_warnings
+OUTPUT_FOLDER := output_tokens_templates_probabilistic_prova
 PROGRAM_FLAGS := --output-compression gzip
-FUNCTION_TO_RUN := extract-user-warnings
-FUNCTION_SUB_COMMANDS := --only-pages-with-user-warnings
+FUNCTION_TO_RUN := extract-user-warnings-templates-probabilistic
+FUNCTION_SUB_COMMANDS := --only-pages-with-user-warnings --language catalan output_tokens/cawiki-20210201-pages-meta-history.xml.7z.features.json.gz --only-last-revision
 PYTHON := python3
 PIP := pip
 DUMP_EXT := .7z

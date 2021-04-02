@@ -21,11 +21,12 @@ MonkeyPatch.patch_fromisoformat()
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the user talk page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, templates: Iterable[extractors.user_warnings_probabilistic_subst.UserWarningTokens]):
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, templates: Iterable[extractors.user_warnings_probabilistic_subst.UserWarningTokens], text: str):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
         self.templates = templates                                  # list of probable user warning templates in that user talk page
+        self.text = text                                            # revision text
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -39,6 +40,7 @@ class Revision:
         obj['user_id'] = user_id
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
+        obj['text'] = self.text
         obj['templates'] = list()
         for temp in self.templates:
             obj['templates'].append(temp.to_dict())
@@ -101,7 +103,8 @@ def extract_revisions(
         only_pages_with_user_warnings: bool,
         only_revisions_with_user_warnings: bool,
         templates_dictionary: Mapping,
-        language: str) -> Iterator[Revision]:
+        language: str,
+        stemmer: bool) -> Iterator[Revision]:
     
     """Extracts the possible user warnings within a user talk page revision."""
     revisions = more_itertools.peekable(mw_page)
@@ -137,6 +140,7 @@ def extract_revisions(
             date_first_revision,
             datetime.datetime.fromisoformat(mw_revision.timestamp.to_json().replace('Z', '+00:00')),
             templates_dictionary,
+            stemmer
         )
 
         # Build the revision
@@ -145,12 +149,13 @@ def extract_revisions(
             user=newest_revision.user,
             timestamp=newest_revision.timestamp.to_json(),
             templates=templates,
+            text=mw_revision.text
         )
 
         # Update stats
         stats['performance']['revisions_analyzed'] += 1
 
-        return rev
+        yield rev
 
     else:
         for mw_revision in revisions:
@@ -165,6 +170,7 @@ def extract_revisions(
                 language,
                 mw_revision.timestamp.to_json(),
                 templates_dictionary,
+                stemmer
             )
 
             # Build the revision
@@ -173,6 +179,7 @@ def extract_revisions(
                 user=mw_revision.user,
                 timestamp=mw_revision.timestamp.to_json(),
                 templates=templates,
+                text=mw_revision.text
             )
 
             # Check the oldest revisions possible
@@ -202,7 +209,8 @@ def extract_pages(
         only_pages_with_user_warnings: bool,
         only_revisions_with_user_warnings: bool,
         templates_dictionary: Mapping,
-        language: str) -> Iterator[Page]:
+        language: str,
+        stemmer: bool) -> Iterator[Page]:
     """Extract the probable templates within a user talk page using templates_dictionary."""
 
     # Loop on all the pages in the dump, one at a time
@@ -210,7 +218,7 @@ def extract_pages(
         utils.log("Processing", mw_page.title)
         
         # Skip non-user talk page, according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
-        if mw_page.namespace != 3:
+        if mw_page.namespace != 10:
             utils.log('Skipped (namespace != 3)')
             continue
 
@@ -221,7 +229,8 @@ def extract_pages(
             only_pages_with_user_warnings=only_pages_with_user_warnings,
             only_revisions_with_user_warnings=only_revisions_with_user_warnings,
             templates_dictionary=templates_dictionary,
-            language=language
+            language=language,
+            stemmer=stemmer
         )
 
         revisions_list = list(revisions_generator)
@@ -255,9 +264,8 @@ def extract_pages(
             if n_occurr > 0:
                 stats['user_warnings_stats']['total'] += 1
             yield page
-    
-        if stats['user_warnings_stats']['total'] > 0:
-            break
+
+        yield page
 
         stats['performance']['pages_analyzed'] += 1
 
@@ -295,6 +303,12 @@ def configure_subparsers(subparsers):
         required=True,
         help='Language of the analyzed dump',
     )
+    parser.add_argument(
+        '--stemmer',
+        action='store_true',
+        required=False,
+        help='Retrieve stemmed words',
+    )
     parser.set_defaults(func=main)
 
 
@@ -330,13 +344,14 @@ def main(
         only_pages_with_user_warnings=args.only_pages_with_user_warnings,
         only_revisions_with_user_warnings=args.only_revisions_with_user_warnings,
         templates_dictionary=templates_dictionary,
-        language=args.language
+        language=args.language,
+        stemmer=args.stemmer
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+        features_output_h.write(json.dumps(obj.to_dict()))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()

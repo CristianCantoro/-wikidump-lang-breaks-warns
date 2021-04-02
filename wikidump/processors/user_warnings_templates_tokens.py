@@ -127,7 +127,8 @@ def extract_revisions(
         mw_page: mwxml.Page,
         stats: Mapping,
         only_last_revision: bool,
-        language: str) -> Iterator[Revision]:
+        language: str,
+        stemmer: bool) -> Iterator[Revision]:
     
     """Extracts the history of a user_warning_template within a template page -> most important keywords."""
     revisions = more_itertools.peekable(mw_page)
@@ -145,7 +146,7 @@ def extract_revisions(
         text = utils.remove_comments(mw_revision.text or '')
 
         # extract the template text and other info
-        template_info = extractors.user_warnings_template_words.userwarnings_words_extractor(text, language)
+        template_info = extractors.user_warnings_template_words.userwarnings_words_extractor(text, language, stemmer)
 
         # Build the revision
         rev = Revision(
@@ -181,7 +182,8 @@ def extract_pages(
         only_last_revision: bool,
         set_interval: Optional[str],
         esclude_template_repetition: bool,
-        language: str) -> Iterator[Page]:
+        language: str,
+        stemmer: bool) -> Iterator[Page]:
     """Extract the templates from an user page."""
 
     # Loop on all the pages in the dump, one at a time
@@ -204,7 +206,8 @@ def extract_pages(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
-            language=language
+            language=language,
+            stemmer=stemmer
         )
 
         revisions_list = list(revisions_generator)
@@ -389,6 +392,12 @@ def configure_subparsers(subparsers):
         required=False,
         help='Max revision cache',
     )
+    parser.add_argument(
+        '--stemmer',
+        action='store_true',
+        required=False,
+        help='Retrieve stemmed words',
+    )
     parser.set_defaults(func=main)
 
 
@@ -424,7 +433,8 @@ def main(
         only_last_revision=args.only_last_revision,
         set_interval=args.set_interval,
         esclude_template_repetition=args.esclude_template_repetition,
-        language=args.language
+        language=args.language,
+        stemmer=args.stemmer
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()

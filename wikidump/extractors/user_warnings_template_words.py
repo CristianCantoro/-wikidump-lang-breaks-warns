@@ -67,7 +67,7 @@ r'''
     >                               # match >
 ''', re.UNICODE | re.VERBOSE | re.MULTILINE)
 
-def userwarnings_words_extractor(text: str, language: str) -> UserWarningTf:
+def userwarnings_words_extractor(text: str, language: str, use_stemmer: bool) -> UserWarningTf:
     """Extract some information like a list of word stemmed in that particular text"""
     # wikicode
     wikicode = mwparserfromhell.parse(text)
@@ -81,8 +81,9 @@ def userwarnings_words_extractor(text: str, language: str) -> UserWarningTf:
     wikicode = clean_string(str(wikicode))
     # remove stop words
     wikicode = remove_stop_words(wikicode, language)
-    # NOTE: no streamming for now. words
-    # wikicode = stream_words(wikicode, language)
+    # word stemming if required
+    if use_stemmer: 
+        wikicode = stream_words(wikicode, language)
     # count the occurences of each word
     words = word_tokenize(wikicode)
     # words dictionary

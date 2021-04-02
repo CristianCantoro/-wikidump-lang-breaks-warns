@@ -36,7 +36,8 @@ def extract_probabilistic_user_warning_templates(
     text: str, 
     language: str,
     timestamp: str,
-    templates_dictionary: Mapping) -> Iterable[UserWarningTokens]:
+    templates_dictionary: Mapping,
+    use_stemmer: bool) -> Iterable[UserWarningTokens]:
 
     # candidates templates
     candidates_template = dict()                # candidate templates with occurences
@@ -45,7 +46,7 @@ def extract_probabilistic_user_warning_templates(
     words_mapping_current_timestamp = dict()    # collection of words of a given template at the revision timestamp
 
     # clean text
-    text = clean_text(text, language)
+    text = clean_text(text, language, use_stemmer)
     
     # revision date
     revision_date = datetime.datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
@@ -83,7 +84,8 @@ def extract_probabilistic_user_warning_templates_last_revision(
     language: str,
     timestamp_first: datetime.datetime,
     timestamp_last: datetime.datetime,
-    templates_dictionary: Mapping) -> Iterable[UserWarningTokens]:
+    templates_dictionary: Mapping,
+    use_stemmer: bool) -> Iterable[UserWarningTokens]:
     
     # candidates templates
     candidates_template = dict()                # candidate templates with occurences
@@ -92,7 +94,7 @@ def extract_probabilistic_user_warning_templates_last_revision(
     words_mapping = dict()                      # collection of words of a given template at the revision timestamp
 
     # clean text
-    text = clean_text(text, language)
+    text = clean_text(text, language, use_stemmer)
 
     # build the template trie (not for a given timestamp but from the first timestamp to the last timestamp)
     template_trie, words_mapping = build_trie_from_to(templates_dictionary, timestamp_first, timestamp_last)
@@ -201,9 +203,12 @@ def find_previous_timestamp(elem_list: Iterable[Union[str, datetime.datetime]], 
         return None
     return i
 
-def clean_text(text: str, language: str) -> str:
+def clean_text(text: str, language: str, use_stemmer: bool) -> str:
     """Clean the string to be iterated"""
     #stemmer = Stemmer.Stemmer(language)
     text = re.sub(r'[^\w]', ' ', text)
-    return ' '.join(list(word for word in word_tokenize(text) if not word in stopwords.words(language)))
-    #return ' '.join(list(map(stemmer.stemWord, word_tokenize(text))))
+    text = ' '.join(list(word for word in word_tokenize(text) if not word in stopwords.words(language)))
+    if use_stemmer:
+        return ' '.join(list(map(stemmer.stemWord, word_tokenize(text))))
+    else:
+        return text
