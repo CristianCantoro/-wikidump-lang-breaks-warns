@@ -88,6 +88,17 @@ At this point we define `N` as the number of words that make up the revision of 
 Let's consider `2*X` documents per template where the other X elements are randomly taken from other templates of the same language to avoid that the `idf` value is not too small or in the worst case 0 for templates that change infrequently. 
 The `K` words with the highest `tf-idf` value for revision are then selected, where `K` varies from revision to revision and is equal to `N/2`
 
+### Probabilistic way to retrieve the occurences of user warnings
+
+If you are interested in finding the user warnings replaced in a probabilistic way, therefore with the possibility of false positives, you can run the following command:
+
+```sh
+python -m wikidump dumps/cawiki/20210201/cawiki-20210201-pages-meta-history.xml.7z output_user_warnings_probabilistiic --output-compression gzip extract-user-warnings-templates-probabilistic --only-pages-with-user-warnings --language catalan output_tokens/cawiki-20210201-pages-meta-history.xml.7z.features.json.gz --only-last-revision
+```
+
+The above command will make use of the words extracted from the `extract-user-warnings-templates-tokens` command, passing the output files as a parameter.
+The goal is to find all the salient words of a particular template within the user discussion page, if so it is marked as found and it also lists the words found to prove it. 
+
 ## Retrieve the name of a Wikipedia template in different languages
 
 You need to find the Wikidata item code of the template of interest, for example for the `wikibreak` tamplate the code is `Q5652064`, from the corresponding [wikidata page](https://www.wikidata.org/wiki/Q5652064). 

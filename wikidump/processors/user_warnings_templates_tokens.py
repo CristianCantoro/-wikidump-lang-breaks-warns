@@ -183,7 +183,8 @@ def extract_pages(
         set_interval: Optional[str],
         esclude_template_repetition: bool,
         language: str,
-        stemmer: bool) -> Iterator[Page]:
+        stemmer: bool,
+        minimum_word_length: int) -> Iterator[Page]:
     """Extract the templates from an user page."""
 
     # Loop on all the pages in the dump, one at a time
@@ -335,7 +336,19 @@ def extract_pages(
                 k = int(rev.template_info.total_number_words / 2)
                 # words to search
                 rev.words_to_search.sort(key = lambda a: a[1], reverse=True)
-                rev.words_to_search = [ el[0] for el in rev.words_to_search[:k]]
+                # check if there's a minimum amount of character needed:
+                if minimum_word_length:
+                    index = 0
+                    for word,_ in rev.words_to_search:
+                        # controlling the word size
+                        if len(word) > minimum_word_length:
+                            rev.words_to_search[index] = (word,_)
+                            index += 1
+                    if index > 0:
+                        rev.words_to_search = rev.words_to_search[:(index - 1)]
+                # taking the k values with the highest tf-idf metric value associated
+                rev.words_to_search = [ el[0] for el in rev.words_to_search[:k] ]
+
 
             # stats update
             if not language in stats['user_warnings_templates']:
@@ -398,6 +411,14 @@ def configure_subparsers(subparsers):
         required=False,
         help='Retrieve stemmed words',
     )
+    parser.add_argument(
+        '--minimum-word-length',
+        action='store',
+        type=int,
+        default=0,
+        required=False,
+        help='Minimum word lenght to retrieve',
+    )
     parser.set_defaults(func=main)
 
 
@@ -434,7 +455,8 @@ def main(
         set_interval=args.set_interval,
         esclude_template_repetition=args.esclude_template_repetition,
         language=args.language,
-        stemmer=args.stemmer
+        stemmer=args.stemmer,
+        minimum_word_length=args.minimum_word_length
     )
 
     stats['performance']['start_time'] = datetime.datetime.utcnow()

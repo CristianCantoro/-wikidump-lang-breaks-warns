@@ -284,7 +284,7 @@ def main(
     stats['performance']['start_time'] = datetime.datetime.utcnow()
 
     for obj in pages_generator:
-        features_output_h.write(json.dumps(obj.to_dict(), indent=4))
+        features_output_h.write(json.dumps(obj.to_dict()))
         features_output_h.write("\n")
     
     stats['performance']['end_time'] = datetime.datetime.utcnow()
