@@ -102,7 +102,7 @@ catalan_user_warnings = set(
     user_warnings_ca.plantilles_d_avisos 
 )
 
-all_templates = set().union(italian_user_warnings, spanish_user_warnings, catalan_user_warnings) # for now not the english one english_user_warnings
+all_templates = set().union(italian_user_warnings, spanish_user_warnings, catalan_user_warnings, english_user_warnings) # for now not the english one english_user_warnings
 
 lang_dict = {
     'it': italian_user_warnings,
@@ -110,6 +110,13 @@ lang_dict = {
     'es': spanish_user_warnings, 
     'en': english_user_warnings
 }
+
+# template category mapping dictionary
+template_category_mapping = dict()
+template_category_mapping.update(user_warnings_ca.plantilles_mapping)
+template_category_mapping.update(user_warnings_es.plantillas_mapping)
+template_category_mapping.update(user_warnings_en.template_mappings)
+template_category_mapping.update(user_warnings_it.templates_mapping)
 
 WIKIBREAKS_PATTERN_REs = [ 
     re.compile(user_warnings_pattern%(w_word.replace(' ', r'\ ')), re.IGNORECASE | re.UNICODE | re.VERBOSE | re.MULTILINE) 
@@ -147,7 +154,7 @@ def user_warnings_extractor(text: str) -> Iterator[CaptureResult[UserWarning]]:
                         lang = 'en'
 
                 # User warning object
-                user_warnings_obj = UserWarning(template_name, lang, dict(), False)
+                user_warnings_obj = UserWarning(template_name, lang, dict(), False, template_category_mapping[template_name])
 
                 # Parse the options if any
                 if check_options(match):

@@ -344,8 +344,7 @@ def extract_pages(
                         if len(word) > minimum_word_length:
                             rev.words_to_search[index] = (word,_)
                             index += 1
-                    if index > 0:
-                        rev.words_to_search = rev.words_to_search[:(index - 1)]
+                    rev.words_to_search = rev.words_to_search[:index]
                 # taking the k values with the highest tf-idf metric value associated
                 rev.words_to_search = [ el[0] for el in rev.words_to_search[:k] ]
 

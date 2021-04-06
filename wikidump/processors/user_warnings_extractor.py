@@ -8,7 +8,7 @@ import datetime
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
 from backports.datetime_fromisoformat import MonkeyPatch
 
-from .. import dumper, extractors, wikibreaks, utils
+from .. import dumper, extractors, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
@@ -167,6 +167,8 @@ def extract_pages(
         users_at_least_parameter = False    # the user has at least a template with at least a parameter
         template_occurences = dict()        # template dictionary, template which contains each template and the number of users who have it in their user talk page and the number
                                             # of user who have it in their talk page with at least a parameter
+        categories_occurences = dict()      # categories occurences
+
         for rev in revisions_list:
             # number of user warnings
             num_user_warnings += rev.num_user_warnings
@@ -175,11 +177,18 @@ def extract_pages(
             # update stats related to the the template, if it is present at least one time in the user talk page and if it have ever had a parameter
             for u_w in rev.user_warnings:
                 if not u_w.user_warning_name in template_occurences:
-                    template_occurences[u_w.user_warning_name] = {'total': False, 'with_params': False, 'lang': u_w.lang}
+                    template_occurences[u_w.user_warning_name] = {'total': False, 'with_params': False, 'lang': u_w.lang, 'category': u_w.category}
                 # it has occurred
                 template_occurences[u_w.user_warning_name]['total'] = True          
                 # it has occurred with at least a parameter                                                                                   
                 template_occurences[u_w.user_warning_name]['with_params'] = template_occurences[u_w.user_warning_name]['with_params'] or u_w.at_least_one_parameter
+                # category update
+                if not u_w.category in categories_occurences:
+                    categories_occurences[u_w.category] = dict()
+                    categories_occurences[u_w.category]['total'] = 0
+                    categories_occurences[u_w.category]['users'] = 1
+                    categories_occurences[u_w.category]['lang'] = u_w.lang
+                categories_occurences[u_w.category]['total'] += 1
 
         page = Page(
             id=mw_page.id,
@@ -202,7 +211,20 @@ def extract_pages(
             stats['user_warnings']['user_template_occurences'][lang][u_w]['user_talk_occurences'] += int(template_occurences[u_w]['total'])
             stats['user_warnings']['user_template_occurences'][lang][u_w]['user_talk_occurences_with_params'] += int(template_occurences[u_w]['with_params'])
 
-         
+        stats['user_warnings']['users_at_least_parameter'] += int(users_at_least_parameter)
+
+        # categories stats update
+        for category in categories_occurences:
+            lang = categories_occurences[category]['lang']
+            if not category in stats['categories']:
+                stats['categories'][category] = dict()
+            if not lang in stats['categories'][category]:
+                stats['categories'][category][lang] = dict()
+                stats['categories'][category][lang]['users'] = 0
+                stats['categories'][category][lang]['total'] = 0
+            stats['categories'][category][lang]['total'] += categories_occurences[category]['total']
+            stats['categories'][category][lang]['users'] += categories_occurences[category]['users']
+
         # Return only the pages with at least one user warning if the flag's active
         if only_pages_with_user_warnings:
             if page.num_user_warnings > 0:
@@ -261,7 +283,8 @@ def main(
             'templates_at_least_one_parameter': 0,      # user warnings templates encountered, in any revision of any user, with at least one parameter
             'user_template_occurences': dict(),         # template dictionary. It contains the number of user who have used them and the number of user who have used them with at least a parameter
             'total_user_talk_pages': 0                  # total user talk pages analyzed
-        }
+        },
+        'categories': dict()                            # categories
     }
 
     pages_generator = extract_pages(
