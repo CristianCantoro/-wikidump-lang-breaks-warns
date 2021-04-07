@@ -93,7 +93,7 @@ The `K` words with the highest `tf-idf` value for revision are then selected, wh
 If you are interested in finding the user warnings replaced in a probabilistic way, therefore with the possibility of false positives, you can run the following command:
 
 ```sh
-python -m wikidump dumps/cawiki/20210201/cawiki-20210201-pages-meta-history.xml.7z output_user_warnings_probabilistiic --output-compression gzip extract-user-warnings-templates-probabilistic --only-pages-with-user-warnings --language catalan output_tokens/cawiki-20210201-pages-meta-history.xml.7z.features.json.gz --only-last-revision
+python -m wikidump dumps/cawiki/20210201/cawiki-20210201-pages-meta-history.xml.7z output_user_warnings_probabilistic --output-compression gzip extract-user-warnings-templates-probabilistic --only-pages-with-user-warnings --language catalan output_tokens/cawiki-20210201-pages-meta-history.xml.7z.features.json.gz --only-last-revision
 ```
 
 The above command will make use of the words extracted from the `extract-user-warnings-templates-tokens` command, passing the output files as a parameter.
