@@ -51,8 +51,8 @@ avviso_copyright = [
     'avvisomarchio',
     'avvisomarchio2',
     'avvisootrs',
-    'Avvisocontrolcopy',
-    'Avvisocopyviol'
+    'avvisocontrolcopy',
+    'avvisocopyviol'
 ]
 
 avviso_invito_progetti = [

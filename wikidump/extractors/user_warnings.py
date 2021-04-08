@@ -102,7 +102,7 @@ catalan_user_warnings = set(
     user_warnings_ca.plantilles_d_avisos 
 )
 
-all_templates = set().union(italian_user_warnings, spanish_user_warnings, catalan_user_warnings, english_user_warnings) # for now not the english one english_user_warnings
+all_templates = set().union(italian_user_warnings, spanish_user_warnings, catalan_user_warnings, english_user_warnings)
 
 lang_dict = {
     'it': italian_user_warnings,

@@ -286,6 +286,7 @@ plantilles_mapping = {
     "benvinguda/versió2": "not_serious",
     "benvinguda/versió3": "not_serious",
     "registre": "not_serious",
+    "avísretiradaadq": "not_serious",
 
 
     "avís subplantilla listeriabot": "warning",

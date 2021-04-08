@@ -21,12 +21,11 @@ MonkeyPatch.patch_fromisoformat()
 # REVISION AND PAGE CLASSES
 class Revision:
     """Class which represent a revision of the user talk page"""
-    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, templates: Iterable[extractors.user_warnings_probabilistic_subst.UserWarningTokens], text: str):
+    def __init__(self, id: str, user: mwxml.Revision.User, timestamp: str, templates: Iterable[extractors.user_warnings_probabilistic_subst.UserWarningTokens]):
         self.id = id                                                # revision id
         self.user = user                                            # revision user
         self.timestamp = timestamp                                  # revision timestamp
         self.templates = templates                                  # list of probable user warning templates in that user talk page
-        self.text = text                                            # revision text
 
     def to_dict(self) -> str:
         """Converts the object instance into a dictionary"""
@@ -40,7 +39,6 @@ class Revision:
         obj['user_id'] = user_id
         obj['user_name'] = user_name
         obj['timestamp'] = self.timestamp
-        obj['text'] = self.text
         obj['templates'] = list()
         for temp in self.templates:
             obj['templates'].append(temp.to_dict())
@@ -148,8 +146,7 @@ def extract_revisions(
             id=newest_revision.id,
             user=newest_revision.user,
             timestamp=newest_revision.timestamp.to_json(),
-            templates=templates,
-            text=mw_revision.text
+            templates=templates
         )
 
         # Update stats
@@ -178,8 +175,7 @@ def extract_revisions(
                 id=mw_revision.id,
                 user=mw_revision.user,
                 timestamp=mw_revision.timestamp.to_json(),
-                templates=templates,
-                text=mw_revision.text
+                templates=templates
             )
 
             # Check the oldest revisions possible
@@ -218,7 +214,7 @@ def extract_pages(
         utils.log("Processing", mw_page.title)
         
         # Skip non-user talk page, according to https://en.wikipedia.org/wiki/Wikipedia:Namespace
-        if mw_page.namespace != 10:
+        if mw_page.namespace != 3:
             utils.log('Skipped (namespace != 3)')
             continue
 
@@ -240,7 +236,7 @@ def extract_pages(
         n_occurr = 0
         for rev in revisions_list:
             for temp in rev.templates:
-                to_add[temp.name] = True
+                to_add[temp.name] = temp.category
                 n_occurr += 1
 
         page = Page(
@@ -252,8 +248,10 @@ def extract_pages(
 
         for key in to_add:
             if not key in stats['user_warnings_stats']['template_recognized']:
-                stats['user_warnings_stats']['template_recognized'][key] = 0
-            stats['user_warnings_stats']['template_recognized'][key] += 1
+                stats['user_warnings_stats']['template_recognized'][key] = dict()
+                stats['user_warnings_stats']['template_recognized'][key]['category'] = to_add[key]
+                stats['user_warnings_stats']['template_recognized'][key]['occurences'] = 0
+            stats['user_warnings_stats']['template_recognized'][key]['occurences'] += 1
 
         # Return only the pages with at least one wikibreak if the flag's active
         if only_pages_with_user_warnings:
@@ -264,8 +262,6 @@ def extract_pages(
             if n_occurr > 0:
                 stats['user_warnings_stats']['total'] += 1
             yield page
-
-        yield page
 
         stats['performance']['pages_analyzed'] += 1
 

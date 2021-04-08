@@ -4,16 +4,14 @@ class UserWarningTokens:
     """Class which stores some info about the user warnings tokens found in a user talk page according to a template mapping"""
 
     """The pair regexp and parameters"""
-    def __init__(self, name: str, template_tokens: list):
+    def __init__(self, name: str, category: str):
         self.name = name
-        self.template_tokens = template_tokens
+        self.category = category
 
     def to_dict(self) -> Mapping:
         obj = dict()
         obj['name'] = self.name
-        obj['template_tokens'] = list()
-        for token in self.template_tokens:
-            obj['template_tokens'].append(token)
+        obj['category'] = self.category
         return obj
 
     def __repr__(self) -> str:

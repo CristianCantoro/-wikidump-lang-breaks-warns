@@ -182,6 +182,7 @@ plantillas_mapping = {
     "coordinador de cursos otorgado":"not_serious",
     "reversor otorgado":"not_serious",
     "verificador otorgado":"not_serious",
+    "desbloqueo revisado":"not_serious",
 
     "aviso blanqueo":"warning",
     "aviso blanqueo discusión":"warning",

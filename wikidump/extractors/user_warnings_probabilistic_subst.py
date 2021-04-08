@@ -6,6 +6,7 @@ https://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_algorithm
 import ahocorasick
 import regex as re
 from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping, Union
+from .. import user_warnings_ca, user_warnings_en, user_warnings_es, user_warnings_it
 from .common import CaptureResult, Identifier, Span
 from .types.user_warnings_token import UserWarningTokens
 from nltk.corpus import stopwords
@@ -28,6 +29,13 @@ class KeyList(object):
         return len(self.l)
     def __getitem__(self, index):
         return self.key(self.l[index])
+
+# template category mapping dictionary
+template_category_mapping = dict()
+template_category_mapping.update(user_warnings_ca.plantilles_mapping)
+template_category_mapping.update(user_warnings_es.plantillas_mapping)
+template_category_mapping.update(user_warnings_en.template_mappings)
+template_category_mapping.update(user_warnings_it.templates_mapping)
 
 # exports 
 __all__ = ['extract_probabilistic_user_warning_templates', 'extract_probabilistic_user_warning_templates_last_revision', 'UserWarningTokens']
@@ -75,7 +83,7 @@ def extract_probabilistic_user_warning_templates(
         words_list,_ = template_at_that_timestamp
         if words_found.issuperset(set(words_list)):
             # add the found template
-            templates_found.append(UserWarningTokens(template, words_list))
+            templates_found.append(UserWarningTokens(template.lower(), template_category_mapping[template.lower()]))
     return templates_found
 
 
@@ -121,7 +129,7 @@ def extract_probabilistic_user_warning_templates_last_revision(
             # check if it is contained for real
             if words_found.issuperset(set(words_list)):
                 # add the found template
-                templates_found.append(UserWarningTokens(template, words_list))
+                templates_found.append(UserWarningTokens(template.lower(), template_category_mapping[template.lower()]))
                 # exit the loop, because the template was found
                 break
 
