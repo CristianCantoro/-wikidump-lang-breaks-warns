@@ -205,6 +205,7 @@ plantillas_mapping = {
     "aviso spam3":"warning",
     "aviso spam4":"warning",
     "ten precaución en la retirada de plantillas de mantenimiento no crítico":"warning",
+    "ediciones arbitrarias":"warning",
 
     "aviso bloqueado":"serious",
     "aviso conflicto de interés":"serious",

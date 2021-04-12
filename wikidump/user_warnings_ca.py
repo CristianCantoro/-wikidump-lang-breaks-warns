@@ -238,7 +238,7 @@ plantilles_mapping = {
     "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del pla de l\'estany": "not_serious",
     "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del priorat": "not_serious",
     "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del ripollès": "not_serious",
-    "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del segrià'": "not_serious",
+    "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del segrià": "not_serious",
     "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del solsonès": "not_serious",
     "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del tarragonès": "not_serious",
     "avís d\'edició/pàgina/llista de béns culturals d\'interès nacional del vallès occidental": "not_serious",
@@ -287,6 +287,7 @@ plantilles_mapping = {
     "benvinguda/versió3": "not_serious",
     "registre": "not_serious",
     "avísretiradaadq": "not_serious",
+    "no tenim aquesta plantilla": "not_serious",
 
 
     "avís subplantilla listeriabot": "warning",

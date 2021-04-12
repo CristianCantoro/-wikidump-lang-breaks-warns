@@ -38,6 +38,7 @@ benvenuto_progetti = [
     'benvenuto - progetto:reggae',
     'benvenuto - progetto:sport/rugby',
     'benvenuto - progetto:trasporti',
+    'invito progetto trasporto'
 ]
 
 avviso_copyright = [
@@ -213,7 +214,7 @@ templates_mapping = {
     "avviso realizzazione dal laboratorio grafico":"not_serious",
     "nomeutenteat":"not_serious",
     "non hai firmato":"not_serious",
-    "non hai firmato 2'":"not_serious",
+    "non hai firmato 2":"not_serious",
     "avviso non hai firmato":"not_serious",
     "nuova voce lgbt":"not_serious",
     "nuovo amministratore":"not_serious",
@@ -276,6 +277,7 @@ templates_mapping = {
     "invito progetto trasporto":"not_serious",
     "invito progetto giappone":"not_serious",
     "test":"not_serious",
+    "invito progetto trasporti":"not_serious",
 
 
     "avviso utente":"warning",
@@ -296,6 +298,18 @@ templates_mapping = {
     "wikitapiro":"warning",
 
 
+    "avvisocontrolcopyfile":"serious",
+    "avvisocopyviol2":"serious",
+    "avvisoedp":"serious",
+    "avvisoedp3":"serious",
+    "avvisoimmagine":"serious",
+    "avvisoimmagine2":"serious",
+    "avvisoimmagine3":"serious",
+    "avvisomarchio":"serious",
+    "avvisomarchio2":"serious",
+    "avvisootrs":"serious",
+    "avvisocontrolcopy":"serious",
+    "avvisocopyviol":"serious",
     "bloccofastweb":"serious",
     "ipvandalismo":"serious",
     "tor/element":"serious",
