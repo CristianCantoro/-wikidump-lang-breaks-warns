@@ -185,10 +185,12 @@ def extract_pages(
                 # category update
                 if not u_w.category in categories_occurences:
                     categories_occurences[u_w.category] = dict()
-                    categories_occurences[u_w.category]['total'] = 0
-                    categories_occurences[u_w.category]['users'] = 1
-                    categories_occurences[u_w.category]['lang'] = u_w.lang
-                categories_occurences[u_w.category]['total'] += 1
+                if not u_w.lang in categories_occurences[u_w.category]:
+                    categories_occurences[u_w.category][u_w.lang] = dict()
+                    categories_occurences[u_w.category][u_w.lang]['total'] = 0    # total amount of times the category appear for the user
+                    categories_occurences[u_w.category][u_w.lang]['users'] = 1    # user who has encountered at least a template of that category
+                    categories_occurences[u_w.category][u_w.lang]['lang'] = u_w.lang
+                categories_occurences[u_w.category][u_w.lang]['total'] += 1       # update the total amount
 
         page = Page(
             id=mw_page.id,
@@ -215,16 +217,16 @@ def extract_pages(
 
         # categories stats update
         for category in categories_occurences:
-            lang = categories_occurences[category]['lang']
-            if not lang in stats['categories']:
-                stats['categories'][lang] = dict()
-            if not category in stats['categories'][lang]:
-                stats['categories'][lang][category] = dict()
-            stats['categories'][lang][category] = dict()
-            stats['categories'][lang][category]['users'] = 0
-            stats['categories'][lang][category]['total'] = 0
-            stats['categories'][lang][category]['total'] += categories_occurences[category]['total']
-            stats['categories'][lang][category]['users'] += categories_occurences[category]['users']
+            for lang in categories_occurences[category]:
+                if not lang in stats['categories']:
+                    stats['categories'][lang] = dict()
+                if not category in stats['categories'][lang]:
+                    stats['categories'][lang][category] = dict()
+                    stats['categories'][lang][category] = dict()
+                    stats['categories'][lang][category]['users'] = 0
+                    stats['categories'][lang][category]['total'] = 0
+                stats['categories'][lang][category]['total'] += categories_occurences[category][lang]['total']
+                stats['categories'][lang][category]['users'] += categories_occurences[category][lang]['users']
 
         # Return only the pages with at least one user warning if the flag's active
         if only_pages_with_user_warnings:
