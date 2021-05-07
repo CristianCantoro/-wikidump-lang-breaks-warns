@@ -8,6 +8,7 @@ from .utils.language_utils_functions import (
     write_error_level_not_recognized,
     is_level
 )
+from mwtemplates import TemplateEditor
 
 # TODO english templates are too many
 
@@ -102,7 +103,7 @@ catalan_user_warnings = set(
     user_warnings_ca.plantilles_d_avisos 
 )
 
-all_templates = set().union(italian_user_warnings, spanish_user_warnings, catalan_user_warnings, english_user_warnings)
+all_templates = set().union(italian_user_warnings, spanish_user_warnings, catalan_user_warnings, english_user_warnings) # for now not the english one english_user_warnings
 
 lang_dict = {
     'it': italian_user_warnings,
@@ -131,6 +132,59 @@ WIKIBREAKS_EMPTY_PATTERN_REs = [
 WIKIBREAKS_REs = WIKIBREAKS_PATTERN_REs + WIKIBREAKS_EMPTY_PATTERN_REs
 
 def user_warnings_extractor(text: str) -> Iterator[CaptureResult[UserWarning]]:
+
+    # use template extractor from mwtemplates
+    uwarnings = TemplateEditor(text)
+
+    # for each unique template name
+    for key in uwarnings.templates.keys():
+
+        # template name
+        template_name = key.lower().strip()
+        
+        # associated language
+        lang = None
+        
+        if template_name in italian_user_warnings:
+            lang = 'it'
+        elif template_name in catalan_user_warnings:
+            lang = 'ca'
+        elif template_name in spanish_user_warnings:
+            lang = 'es'
+        elif template_name in english_user_warnings:
+            lang = 'en'
+
+        # check if the template is needed or not
+        if not lang:
+            continue
+
+        # for each template named key occurence
+        for template in uwarnings.templates[key]:
+
+            # basic parameters
+            user_warnings_obj = UserWarning(template_name, lang, dict(), False, template_category_mapping[template_name])
+
+            # Counter for positional arguments
+            positional_counter = 1  # NOTE: starting from 1, as the first argument is 1 in the wikimarkup
+
+            # for each parameter
+            for i, parameters in enumerate(template.parameters):
+                
+                # named parameter
+                if len(parameters.name.strip()) > 0:
+                    user_warnings_obj.options[parameters.name] = parameters.value
+                else:
+                    # positional parameter
+                    user_warnings_obj.options[positional_counter] = parameters.value
+                    positional_counter += 1
+
+                user_warnings_obj.at_least_one_parameter = True
+
+            yield CaptureResult(
+                data=(user_warnings_obj), span=None
+            )
+
+def user_warnings_extractor2(text: str) -> Iterator[CaptureResult[UserWarning]]:
     for pattern in WIKIBREAKS_REs:
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_wikibreaks_presence(match): # extract a named group called type (name of the user warning template used)

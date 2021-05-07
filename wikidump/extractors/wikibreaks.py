@@ -17,6 +17,7 @@ from .utils.language_utils_functions import (
     write_error_level_not_recognized,
     is_level
 )
+from mwtemplates import TemplateEditor
 
 # NOTE
 # Strange behaviours: 
@@ -139,6 +140,48 @@ WIKIBREAKS_EMPTY_PATTERN_REs = [
 WIKIBREAKS_REs = WIKIBREAKS_PATTERN_REs + WIKIBREAKS_EMPTY_PATTERN_REs
 
 def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
+
+    # use template extractor from mwtemplates
+    wbreaks = TemplateEditor(text)
+
+    # for each unique template name
+    for key in wbreaks.templates.keys():
+
+        wiki_name = key.lower().strip()
+        # check if the template is one of the desired ones
+        if not wiki_name in all_wikibreaks_words:
+            continue
+
+        # for each template named key occurence
+        for template in wbreaks.templates[key]:
+
+            # basic parameters
+            wikimap = wikibreaks.wikibreak_fields_to_tuple_category_subcategory[wiki_name]
+            wiki_category = wikimap['category']
+            wiki_sub_category = wikimap['subcategory']
+            wikibreak_obj = Wikibreak(wiki_name, wiki_category, wiki_sub_category, dict(), False)
+
+            # Counter for positional arguments
+            positional_counter = 1  # NOTE: starting from 1, as the first argument is 1 in the wikimarkup
+
+            # for each parameter
+            for i, parameters in enumerate(template.parameters):
+                
+                # named parameter
+                if len(parameters.name.strip()) > 0:
+                    wikibreak_obj.options[parameters.name.strip()] = parameters.value
+                else:
+                    # positional parameter
+                    wikibreak_obj.options[positional_counter] = parameters.value
+                    positional_counter += 1
+
+                wikibreak_obj.at_least_one_parameter = True
+
+            yield CaptureResult(
+                data=(wikibreak_obj), span=None
+            )
+
+def wikibreaks_extractor2(text: str) -> Iterator[CaptureResult[Wikibreak]]:
     for pattern in WIKIBREAKS_REs:
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_wikibreaks_presence(match): # extract a named group called type (name of the wikipause template used)

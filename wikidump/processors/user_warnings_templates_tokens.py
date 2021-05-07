@@ -187,6 +187,8 @@ def extract_pages(
         minimum_word_length: int) -> Iterator[Page]:
     """Extract the templates from an user page."""
 
+    counter = 1
+
     # Loop on all the pages in the dump, one at a time
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
@@ -202,6 +204,8 @@ def extract_pages(
         # those revision can replace / be stored in the revision_storage
         if not mw_page.title.lower() in user_warnings_templates:
             store_flag = True
+        else:
+            counter += 1
 
         revisions_generator = extract_revisions(
             mw_page,

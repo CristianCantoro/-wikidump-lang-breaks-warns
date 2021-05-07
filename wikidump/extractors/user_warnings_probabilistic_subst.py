@@ -213,7 +213,7 @@ def find_previous_timestamp(elem_list: Iterable[Union[str, datetime.datetime]], 
 
 def clean_text(text: str, language: str, use_stemmer: bool) -> str:
     """Clean the string to be iterated"""
-    #stemmer = Stemmer.Stemmer(language)
+    stemmer = Stemmer.Stemmer(language)
     text = re.sub(r'[^\w]', ' ', text)
     text = ' '.join(list(word for word in word_tokenize(text) if not word in stopwords.words(language)))
     if use_stemmer:

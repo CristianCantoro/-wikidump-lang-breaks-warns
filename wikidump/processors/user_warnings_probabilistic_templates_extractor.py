@@ -82,15 +82,13 @@ def extract_templates_words(files: Iterable[pathlib.Path]) -> Mapping:
     template_dictionary = dict()
     utils.log("Preparing the templates dictionary..")
     for file_name in files:
+        utils.log("Analizying file {}...".format(str(file_name)))
         file = input_reader(str(file_name))
-        try:   # todo remove the try catch
-            for line in file:
-                template_page = json.loads(line)
-                template_dictionary[template_page['title']] = list() # key = name of the template
-                for rev in template_page['revisions']: # for each revision
-                    template_dictionary[template_page['title']].append((rev['words_to_search'], datetime.datetime.fromisoformat(rev['timestamp'].replace('Z', '+00:00'))))    # concatenate each words to find (list of lists)
-        except:
-            pass
+        for line in file.readlines():
+            template_page = json.loads(line)
+            template_dictionary[template_page['title']] = list() # key = name of the template
+            for rev in template_page['revisions']: # for each revision
+                template_dictionary[template_page['title']].append((rev['words_to_search'], datetime.datetime.fromisoformat(rev['timestamp'].replace('Z', '+00:00'))))    # concatenate each words to find (list of lists)
         file.close()
     return template_dictionary
 
@@ -327,7 +325,7 @@ def main(
             'template_recognized': dict()   # templates and its usage
         }
     }
-    
+
     # dictionary which stores the words which needs to be searched in order to establish if a certain template has been substituted there
     templates_dictionary = extract_templates_words(
         files=args.tokens,

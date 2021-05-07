@@ -6,7 +6,8 @@ import gzip
 import codecs
 import argparse
 import subprocess
-
+from joblib import Parallel, delayed
+import multiprocessing
 import mw.xml_dump
 import mwxml
 import pathlib
@@ -110,49 +111,50 @@ def get_args():
     return parsed_args
 
 
-def main():
+def main(args, input_file_path: str):
     """Main function."""
-    args = get_args()
 
     if not args.output_dir_path.exists():
         args.output_dir_path.mkdir(parents=True)
 
-    for input_file_path in args.files:
-        utils.log("Analyzing {}...".format(input_file_path))
+    #for input_file_path in args.files:
+    utils.log("Analyzing {}...".format(input_file_path))
 
-        dump = mwxml.Dump.from_file(open_xml_file(str(input_file_path)))
+    dump = mwxml.Dump.from_file(open_xml_file(str(input_file_path)))
 
-        basename = input_file_path.name
+    basename = input_file_path.name
 
-        if args.dry_run:
-            pages_output = open(os.devnull, 'wt')
-            stats_output = open(os.devnull, 'wt')
-        else:
-            pages_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.features.json')),
-                compression=args.output_compression,
-            )
-            stats_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.stats.json')),
-                compression=args.output_compression,
-            )
-        args.func(
-            dump,
-            pages_output,
-            stats_output,
-            args,
+    if args.dry_run:
+        pages_output = open(os.devnull, 'wt')
+        stats_output = open(os.devnull, 'wt')
+    else:
+        pages_output = output_writer(
+            path=str(args.output_dir_path/(basename + '.features.json')),
+            compression=args.output_compression,
+        )
+        stats_output = output_writer(
+            path=str(args.output_dir_path/(basename + '.stats.json')),
+            compression=args.output_compression,
         )
 
-        # dump is not a file-like object, cannot explictly close input file
-        # dump.close()
+    args.func(
+        dump,
+        pages_output,
+        stats_output,
+        args,
+    )
 
-        # explicitly close output files
-        pages_output.close()
-        stats_output.close()
+    # dump is not a file-like object, cannot explictly close input file
+    # dump.close()
 
-        utils.log("Done Analyzing {}.".format(input_file_path))
+    # explicitly close output files
+    pages_output.close()
+    stats_output.close()
 
-
+    utils.log("Done Analyzing {}.".format(input_file_path))
 
 if __name__ == '__main__':
-    main()
+    args = get_args()
+    # n_cores 
+    num_core = multiprocessing.cpu_count()
+    Parallel(n_jobs=num_core)(delayed(main)(args, path) for path in args.files)

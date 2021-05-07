@@ -101,25 +101,25 @@ wikibreak_fields_to_tuple_category_subcategory = {
         "category": [
             "back/not"
         ],
-        "subcategory": "off and on WikiBreak"
+        "subcategory": "off and on Wikibreak"
     },
     "بەکارھێنەری ویکی پشوو": {
         "category": [
             "back/not"
         ],
-        "subcategory": "off and on WikiBreak"
+        "subcategory": "off and on Wikibreak"
     },
     "على نحو متقطع": {
         "category": [
             "back/not"
         ],
-        "subcategory": "off and on WikiBreak"
+        "subcategory": "off and on Wikibreak"
     },
     "off and on wikibreak": {
         "category": [
             "back/not"
         ],
-        "subcategory": "off and on WikiBreak"
+        "subcategory": "off and on Wikibreak"
     },
     "exàmens": {
         "category": [
@@ -706,7 +706,7 @@ wikibreak_fields_to_tuple_category_subcategory = {
         ],
         "subcategory": "user health inactive"
     },
-    "off wiki Covid 19": {
+    "off wiki covid 19": {
         "category": [
             "health related"
         ],

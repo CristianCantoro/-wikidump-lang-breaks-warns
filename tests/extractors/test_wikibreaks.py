@@ -5,7 +5,7 @@ from wikidump.extractors import wikibreaks
 
 INPUT_TEXT = '''
 {{wikibreak|[[Io sono un link|bellissimo!|come va|sample text]]|[[discrepàncies|ciao|]] devo essere incluso!| io sto tutto apposto grazie}}
-{{viquidescansas|samuele|epic}}
+{{viquidescans|samuele|epic}}
 {{occupato||sono in sessione||}}
 {{tentata wikipausa}}
 {{Exàmens|a}}
@@ -16,15 +16,15 @@ INPUT_TEXT = '''
 {{occupato|Prova|[|non worko[26 novembre]], [x | kik] di ritorno dalle sue vacanze al mare 
 ''[[Trento|a Trento]]'', per poi ripartire due giorni dopo ed andare [[Svizzera 
 |a Zurigo]] da cui ritornerò il giorno [[8 dicembre]] su Wikipedia definitivamente .}}
+{{sono un non template |[[Utente:Eltharion|Eltharion]]|\'\'\'3 agosto\'\'\'...forse ;)}}
 '''
 
 EXPECTED_LANGS = 4
 
 def wikibreaks_extractor():
-    wbreaks = list(wb for wb,_ in wikibreaks.wikibreaks_extractor(INPUT_TEXT))
-    for w_b in wbreaks:
-        print(w_b)
-        print(w_b.to_dict(), '\n')
+    wbreaks = list(wb for wb in wikibreaks.wikibreaks_extractor(INPUT_TEXT))
+    for wb in wbreaks:
+        print(wb)
 
 if __name__ == "__main__":
     wikibreaks_extractor()
