@@ -142,7 +142,11 @@ WIKIBREAKS_REs = WIKIBREAKS_PATTERN_REs + WIKIBREAKS_EMPTY_PATTERN_REs
 def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
 
     # use template extractor from mwtemplates
-    wbreaks = TemplateEditor(text)
+    try:
+        wbreaks = TemplateEditor(text)
+    except:
+        # there can be different type of text which are not supported by mwtemplates
+        return wikibreaks_extractor_handcrafted(text)
 
     # for each unique template name
     for key in wbreaks.templates.keys():
@@ -181,7 +185,7 @@ def wikibreaks_extractor(text: str) -> Iterator[CaptureResult[Wikibreak]]:
                 data=(wikibreak_obj), span=None
             )
 
-def wikibreaks_extractor2(text: str) -> Iterator[CaptureResult[Wikibreak]]:
+def wikibreaks_extractor_handcrafted(text: str) -> Iterator[CaptureResult[Wikibreak]]:
     for pattern in WIKIBREAKS_REs:
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_wikibreaks_presence(match): # extract a named group called type (name of the wikipause template used)

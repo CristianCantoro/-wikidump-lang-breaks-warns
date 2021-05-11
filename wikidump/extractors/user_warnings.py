@@ -134,7 +134,12 @@ WIKIBREAKS_REs = WIKIBREAKS_PATTERN_REs + WIKIBREAKS_EMPTY_PATTERN_REs
 def user_warnings_extractor(text: str) -> Iterator[CaptureResult[UserWarning]]:
 
     # use template extractor from mwtemplates
-    uwarnings = TemplateEditor(text)
+    try:
+        uwarnings = TemplateEditor(text)
+    except:
+        # there can be different type of text which are not supported by mwtemplates
+        return user_warnings_extractor_handcrafted(text)
+
 
     # for each unique template name
     for key in uwarnings.templates.keys():
@@ -184,7 +189,7 @@ def user_warnings_extractor(text: str) -> Iterator[CaptureResult[UserWarning]]:
                 data=(user_warnings_obj), span=None
             )
 
-def user_warnings_extractor2(text: str) -> Iterator[CaptureResult[UserWarning]]:
+def user_warnings_extractor_handcrafted(text: str) -> Iterator[CaptureResult[UserWarning]]:
     for pattern in WIKIBREAKS_REs:
         for match in pattern.finditer(text): # returns an iterator of match object
             if check_wikibreaks_presence(match): # extract a named group called type (name of the user warning template used)
