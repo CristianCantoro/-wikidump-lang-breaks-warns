@@ -1,16 +1,13 @@
 """Extract the most recurrent tokens of the template text"""
 
-import collections
 import json
 import more_itertools
 import mwxml
 import datetime
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from typing import Iterable, Iterator, Mapping, Optional
 from backports.datetime_fromisoformat import MonkeyPatch
 # nltk
-import nltk.corpus 
-from nltk.text import TextCollection
-from .. import dumper, extractors, user_warnings_en, user_warnings_it, user_warnings_es, user_warnings_ca, utils
+from .. import extractors, user_warnings_en, user_warnings_it, user_warnings_es, user_warnings_ca, utils
 import math
 import random
 

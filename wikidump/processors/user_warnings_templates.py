@@ -1,14 +1,13 @@
 """Extract the user warning templates crafting a regex for matching them in the text"""
 
-import collections
 import json
 import more_itertools
 import mwxml
 import datetime
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from typing import Iterable, Iterator, Mapping, Optional
 from backports.datetime_fromisoformat import MonkeyPatch
 
-from .. import dumper, extractors, user_warnings_en, user_warnings_it, user_warnings_es, user_warnings_ca, utils
+from .. import extractors, user_warnings_en, user_warnings_it, user_warnings_es, user_warnings_ca, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()

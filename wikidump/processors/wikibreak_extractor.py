@@ -1,14 +1,13 @@
 """Extract the the wikibreaks option in the user page and user talk page"""
 
-import collections
 import json
 import more_itertools
 import mwxml
 import datetime
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from typing import Iterable, Iterator, Mapping
 from backports.datetime_fromisoformat import MonkeyPatch
 
-from .. import dumper, extractors, wikibreaks, utils
+from .. import extractors, wikibreaks, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
@@ -40,7 +39,6 @@ class Revision:
         obj['timestamp'] = self.timestamp
         obj['wikibreaks'] = list()
         for w_b in self.wikibreaks:
-            print('Sto leggenedo:', w_b)
             obj['wikibreaks'].append(w_b.to_dict())
         return obj
 

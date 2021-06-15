@@ -6,8 +6,7 @@ import sys
 
 import more_itertools
 import regex as re
-from typing import (Generic, Iterable, List, NamedTuple, Optional, T, Tuple,
-                    TypeVar)
+from typing import (Generic, Iterable, List, NamedTuple, Optional, T, Tuple, TypeVar)
 
 
 class Diff(NamedTuple("Diff", [("action", str), ("data", T)]), Generic[T]):

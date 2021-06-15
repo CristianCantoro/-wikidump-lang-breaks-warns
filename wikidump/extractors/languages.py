@@ -9,13 +9,11 @@ There are also some alternatives to the Babel template:
 import regex as re
 from typing import Iterator
 from .. import languages
-from .common import CaptureResult, Identifier, Span
+from .common import CaptureResult
 from .types.language_level import LanguageLevel
 from .utils.language_utils_functions import (
     is_level, 
-    get_level,
-    write_error_level_not_recognized, 
-    write_error
+    get_level
 )
 
 # exports 
@@ -143,7 +141,6 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
             if check_language_presence(match): # extract a named group called lang (basically it contains a single language if it's the user's mother tongue, otherwise lang-level)
                 raw_langs = match.group('lang')
                 if not raw_langs:
-                    write_error(pattern, match)
                     return
                 parsed_languages = list(filter(None, 
                     raw_langs.strip().replace('_', '') .split('|') # retrieve the languages I am interested in for the user, 
@@ -154,7 +151,6 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                     l = langs.split('-', 1) # retrieve the couple language - level, if any level specified
                     if len(l) > 1:
                         if not is_level(l[1]):
-                            write_error_level_not_recognized(match, l[1])
                             return
                         level = get_level(l[1])
                     else:
@@ -166,7 +162,8 @@ def language_knowledge(text: str) -> Iterator[CaptureResult[LanguageLevel]]:
                             data=(lang_knowedge), span=(match.start(), match.end())
                         )
                     else:
-                        write_error(pattern, match) # Language not recognized
+                        # Language not recognized
+                        pass
             else:
                 pass
 

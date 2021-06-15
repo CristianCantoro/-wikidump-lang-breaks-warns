@@ -7,8 +7,7 @@ https://it.wikipedia.org/wiki/Aiuto:Subst
 """
 
 import regex as re
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping
-from .common import CaptureResult, Identifier, Span
+from typing import Iterator
 from .types.user_warning_template import UserWarningTemplate
 import mwparserfromhell
 

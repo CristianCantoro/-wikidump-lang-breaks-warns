@@ -3,7 +3,6 @@ import os
 import io
 import bz2
 import gzip
-import codecs
 import argparse
 import subprocess
 from joblib import Parallel, delayed
@@ -14,8 +13,6 @@ import pathlib
 from typing import IO, Optional, Union
 
 from . import processors, utils
-
-# TODO: --output-compression must be at the beginning of the file if the files argument is a list, must be fixed
 
 def open_xml_file(path: Union[str, IO]):
     """Open an xml file, decompressing it if necessary."""
@@ -88,14 +85,6 @@ def get_args():
     )
 
     subparsers = parser.add_subparsers(help='sub-commands help')
-    processors.bibliography_extractor.configure_subparsers(subparsers)
-    processors.identifiers_extractor.configure_subparsers(subparsers)
-    processors.identifiers_history_extractor.configure_subparsers(subparsers)
-    processors.page_ids_extractor.configure_subparsers(subparsers)
-    processors.redirect_extractor.configure_subparsers(subparsers)
-    processors.revisionlist_extractor.configure_subparsers(subparsers)
-    processors.sections_counter.configure_subparsers(subparsers)
-    processors.wikilink_extractor.configure_subparsers(subparsers)
     processors.known_languages_extractor.configure_subparsers(subparsers)
     processors.wikibreak_extractor.configure_subparsers(subparsers)
     processors.user_warnings_templates.configure_subparsers(subparsers)
@@ -144,9 +133,6 @@ def main(args, input_file_path: str):
         args,
     )
 
-    # dump is not a file-like object, cannot explictly close input file
-    # dump.close()
-
     # explicitly close output files
     pages_output.close()
     stats_output.close()
@@ -157,4 +143,5 @@ if __name__ == '__main__':
     args = get_args()
     # n_cores 
     num_core = multiprocessing.cpu_count()
+    # parallel
     Parallel(n_jobs=num_core)(delayed(main)(args, path) for path in args.files)

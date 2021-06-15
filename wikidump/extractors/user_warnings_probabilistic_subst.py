@@ -5,9 +5,8 @@ https://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_algorithm
 
 import ahocorasick
 import regex as re
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping, Union
+from typing import Iterable, Mapping, Mapping, Tuple
 from .. import user_warnings_ca, user_warnings_en, user_warnings_es, user_warnings_it
-from .common import CaptureResult, Identifier, Span
 from .types.user_warnings_token import UserWarningTokens
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -16,7 +15,6 @@ import bisect
 from backports.datetime_fromisoformat import MonkeyPatch
 import ahocorasick
 import datetime
-import json
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
@@ -135,7 +133,7 @@ def extract_probabilistic_user_warning_templates_last_revision(
 
     return templates_found
 
-def build_trie_current_timestamp(template_dictionary: Mapping, timestamp: datetime.datetime) -> Union[ahocorasick.Automaton, Mapping]:
+def build_trie_current_timestamp(template_dictionary: Mapping, timestamp: datetime.datetime) -> Tuple[ahocorasick.Automaton, Mapping]:
     """Function which builds the trie from the previous mapping by the specified timestamp"""
     trie = ahocorasick.Automaton()              # trie
     words_mapping_current_timestamp = dict()
@@ -165,7 +163,7 @@ def build_trie_current_timestamp(template_dictionary: Mapping, timestamp: dateti
 
     return trie, words_mapping_current_timestamp
 
-def build_trie_from_to(template_dictionary: Mapping, from_timestamp: datetime.datetime, to_timestamp: datetime.datetime) -> Union[ahocorasick.Automaton, Mapping]:
+def build_trie_from_to(template_dictionary: Mapping, from_timestamp: datetime.datetime, to_timestamp: datetime.datetime) -> Tuple[ahocorasick.Automaton, Mapping]:
     """Function which builds the trie from the first timestamp tot the last one given"""
     trie = ahocorasick.Automaton()
     words_mapping = dict()  # words mapping
@@ -200,7 +198,7 @@ def build_trie_from_to(template_dictionary: Mapping, from_timestamp: datetime.da
 
     return trie, words_mapping
 
-def find_previous_timestamp(elem_list: Iterable[Union[str, datetime.datetime]], current_timestamp: datetime.datetime):
+def find_previous_timestamp(elem_list: Iterable[Tuple[str, datetime.datetime]], current_timestamp: datetime.datetime):
     '''Find greatest item less or equal to key knowing that the list are ordered by timestamp'''
     i = bisect.bisect_left(KeyList(elem_list, key=lambda x: x[1]), current_timestamp)
     if i == len(elem_list):

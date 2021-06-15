@@ -9,14 +9,9 @@ https://en.wikipedia.org/wiki/Template:Wikibreak:
 
 import regex as re
 from .. import wikibreaks
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping
-from .common import CaptureResult, Identifier, Span
+from typing import Iterable, Iterator
+from .common import CaptureResult
 from .types.wikibreak import Wikibreak
-from .utils.language_utils_functions import (
-    write_error,
-    write_error_level_not_recognized,
-    is_level
-)
 from mwtemplates import TemplateEditor
 
 # NOTE
@@ -192,7 +187,6 @@ def wikibreaks_extractor_handcrafted(text: str) -> Iterator[CaptureResult[Wikibr
                 wiki_name = match.group('type')
                 
                 if not wiki_name:
-                    write_error(pattern, match)
                     return
                 
                 # Wikipause object: basically the name and the list of options

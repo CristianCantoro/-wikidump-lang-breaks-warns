@@ -1,14 +1,13 @@
 """Extract the language known by the registered users in Wikipedia and some statistics about them"""
 
-import collections
 import json
 import more_itertools
 import mwxml
 import datetime
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from typing import Iterable, Iterator, Mapping
 from backports.datetime_fromisoformat import MonkeyPatch
 
-from .. import dumper, extractors, languages, utils
+from .. import extractors, languages, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()

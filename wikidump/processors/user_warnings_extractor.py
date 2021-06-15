@@ -1,14 +1,13 @@
 """Extract the user warnings templates and the options specified in user talk pages"""
 
-import collections
 import json
 import more_itertools
 import mwxml
 import datetime
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from typing import Iterable, Iterator, Mapping
 from backports.datetime_fromisoformat import MonkeyPatch
 
-from .. import dumper, extractors, utils
+from .. import extractors, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()

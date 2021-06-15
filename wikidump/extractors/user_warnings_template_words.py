@@ -5,7 +5,6 @@ from .types.user_warnings_tf import UserWarningTf
 import mwparserfromhell
 
 # nltk
-import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import Stemmer # stemmer from pystemmer

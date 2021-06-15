@@ -1,13 +1,8 @@
 import regex as re
 from .. import user_warnings_ca, user_warnings_en, user_warnings_es, user_warnings_it
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional, Mapping
-from .common import CaptureResult, Identifier, Span
+from typing import Iterable, Iterator
+from .common import CaptureResult
 from .types.user_warnings import UserWarning
-from .utils.language_utils_functions import (
-    write_error,
-    write_error_level_not_recognized,
-    is_level
-)
 from mwtemplates import TemplateEditor
 
 # TODO english templates are too many
@@ -198,7 +193,6 @@ def user_warnings_extractor_handcrafted(text: str) -> Iterator[CaptureResult[Use
                 # language of that template
                 lang = None
                 if not template_name:
-                    write_error(pattern, match)
                     return
                 else:
                     # language recognition

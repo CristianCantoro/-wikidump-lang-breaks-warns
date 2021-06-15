@@ -1,6 +1,5 @@
 """Extract the user warning templates by searching the salient words which characterizes the template"""
 
-import collections
 import json
 import more_itertools
 import mwxml
@@ -8,12 +7,10 @@ import pathlib
 import datetime
 import bz2
 import gzip
-from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+from typing import Iterable, Iterator, Mapping
 from backports.datetime_fromisoformat import MonkeyPatch
-import ahocorasick
-import time
 
-from .. import dumper, extractors, utils
+from .. import extractors, utils
 
 # Polyfiller for retrocompatibiliy with Python3.5
 MonkeyPatch.patch_fromisoformat()
@@ -66,7 +63,7 @@ class Page:
             obj['revisions'].append(rev.to_dict())
         return obj
 
-# TODO do 7z reader
+# TODO implement 7z reader
 def input_reader(path: str):
     compression = pathlib.Path(path).suffix
     """Open a compressed file, if it is compressed"""

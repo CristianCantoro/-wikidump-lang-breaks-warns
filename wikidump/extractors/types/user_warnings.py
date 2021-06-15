@@ -1,4 +1,4 @@
-from typing import Mapping, Iterable
+from typing import Mapping
 
 class UserWarning:
     """Class which stores the possible attributes, if any, of a user warning object"""
