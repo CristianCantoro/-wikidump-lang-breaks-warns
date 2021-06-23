@@ -143,6 +143,23 @@ only after having edited it, can you simply type:
 make run
 ```
 
+## Run
+
+In order to call the all the scripts on all the Wikipedia dump, you can run the following script
+
+```bash
+./run.sh
+```
+
+First of all, be sure you have modified all the readonly variables so as to fit your needs; feel free to change whatever you want.
+
+The dependencies of the previously defined script are
+
+* [wikidump-download-tools](https://github.com/CristianCantoro/wikidump-download-tools)
+* [curl](https://curl.se/)
+* [GNU parallel](https://www.gnu.org/software/parallel/)
+
+
 # Authors
 
 This library was created by [Alessio Bogon](https://github.com/youtux) and then expanded by [Cristian Consonni](https://github.com/CristianCantoro).
