@@ -14,8 +14,8 @@ MonkeyPatch.patch_fromisoformat()
 
 # time interval in seconds
 time_interval_in_seconds = {
-    '1 day': 86400,
-    '1 week': 604800
+    '1day': 86400,
+    '1week': 604800
 }
 
 user_warnings_templates = set(
@@ -264,7 +264,7 @@ def configure_subparsers(subparsers):
     )
     parser.add_argument(
         '--set-interval',
-        choices={None, '1 day', '1 week'},
+        choices={None, '1day', '1week'},
         required=False,
         default=None,
         help='Time interval at the end of which to return the revison',

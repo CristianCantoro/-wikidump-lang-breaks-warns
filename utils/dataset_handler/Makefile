@@ -1,5 +1,5 @@
 # FOLDERS
-SCRIPTS_FOLDER := datasets_handler
+SCRIPTS_FOLDER := .
 OUTPUT_FOLDER_MERGED := ../languages_merged
 INPUT_FOLDER_RAW := ../output_languages
 INPUT_FOLDER_MERGED := $(OUTPUT_FOLDER_MERGED)
