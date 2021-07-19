@@ -176,7 +176,7 @@ docker build -t wikidump .
 Lastly, run the docker image:
 
 ```bash
-docker run wikidump ./run.sh
+docker run wikidump
 ```
 
 # Authors

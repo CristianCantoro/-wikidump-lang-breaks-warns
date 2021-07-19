@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# TODO lanciarlo intero, poi va benissimo
-
 is_complete_dump() {
     # it checks if the value is a number and if it ends with 01, since
     # the full dump is usually retrieved on the first of each month 

@@ -31,3 +31,5 @@ COPY . .
 RUN pip install -r requirements.txt
 # Making the run.sh executable
 RUN chmod +x run.sh
+# run the run.sh script
+CMD ./run.sh

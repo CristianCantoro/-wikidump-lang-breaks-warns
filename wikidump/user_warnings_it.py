@@ -296,6 +296,7 @@ templates_mapping = {
     "sockpuppet":"warning",
     "trota":"warning",
     "wikitapiro":"warning",
+    "avvisoavvisi":"warning",
 
 
     "avvisocontrolcopyfile":"serious",
@@ -324,7 +325,6 @@ templates_mapping = {
     "pagina utente promozionale":"serious",
     "attacco":"serious",
     "avviso abusefilter":"serious",
-    "avvisoavvisi":"serious",
     "blocco":"serious",
     "wmf-legal banned user":"serious",
     "bloccoinfinito":"serious",
