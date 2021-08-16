@@ -43,6 +43,7 @@ get_latest_full_dump() {
 
 # Path of the wikidump-download-tools
 readonly WIKIDUMP_DOWLOAD_TOOLS="$(realpath "../wikidump-download-tools" )"
+readonly DUMP_VOLUME=/tmp/dumps
 # linked arrays
 declare -a wikis=( "cawiki" "enwiki" "itwiki" "eswiki" )
 declare -a languages_codes=( "ca" "en" "it" "es" )
@@ -105,6 +106,8 @@ if [ ${download_dump} = 1 ]; then
         echo "Symbolic link creation failed"
         exit 1
     fi
+else
+    ln -s "${DUMP_VOLUME}" "dumps/"
 fi
 
 # CREATE FOLDERS
