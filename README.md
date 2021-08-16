@@ -143,6 +143,32 @@ only after having edited it, can you simply type:
 make run
 ```
 
+## Metrics
+
+`utils/dataset_handler` contains also some scripts to upload some metrics on a `Postgres` database, all you need to do in order to produce them is to run the following command:
+
+```sh
+python utils/metrics_loader/..metrics.py DATASET_LOCATION DATABASE_NAME POSTGRES_USER POSTGRES_USER_PASSWORD POSTGRES_PORT
+```
+
+* `DATASET_LOCATION` refers to the path where the compressed JSON file is stored. Undoubtedly you need to pass the correct dataset according to the metrics which you are willing to compute. 
+* `DATABASE_NAME` refers to the name of the Postgres database you are willing to use
+* `POSTGRES_USER` refers to the name of the Postgres user you are willing to use
+* `POSTGRES_USER_PASSWORD` refers to the password of the previously defined user
+* `POSTGRES_PORT` refers to the Postgres process port
+
+The produced metrics will be the following:
+
+* Number of wikibreak templates registered in a given month, and the cumulative amount up to that point 
+* Number of user warnings templates registered in a given month, and the cumulative amount up to that point 
+
+They will have the following schema:
+
+| id |  name   | year | month | category  | uw_category | wikibreak_category1 | wikibreak_category2 | wikibreak_subcategory | amount | cumulative_amount |
+| :- | :------ | :--- | :---- | :-------- | :---------- | :------------------ | :------------------ | :---------------------| :----- | :---------------- |
+| PK SERIAL | TEXT | INT | INT | TEXT | TEXT | TEXT | TEXT | TEXT | INT | INT |
+
+
 ## Run
 
 In order to call the all the scripts on all the Wikipedia dump, you can run the following script

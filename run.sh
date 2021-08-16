@@ -54,6 +54,14 @@ declare -a wiki_url=()
 download_dump=0
 # delete folder flag
 delete_folders=0
+# drop table flag
+drop_templates=1
+
+# postgres variable
+readonly POSTGRES_DATABASE=wikimedia_database
+readonly POSTGRES_USER=user
+readonly POSTGRES_PASSWORD=fakepassword
+readonly POSTGRES_PORT=5432
 
 if [ ${download_dump} = 1 ]; then
     for wiki in ${wikis[@]} ; do
@@ -169,6 +177,16 @@ fi
 
 cd ../..
 
+echo 'Drop the templates table'
+
+if [ ${drop_templates} = 1 ]; then
+    python utils/metrics_uploader/drop_table_templates.py ${POSTGRES_DATABASE} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${POSTGRES_PORT}
+fi
+
+echo 'Computing the wikibreak metrics and uploading them on the database'
+
+parallel -j+0 --link --progress python utils/metrics_uploader/wikibreak_metrics.py 'output_wikibreaks_refactored/{1}_{2}_refactored_wikibreaks_dataset.json.gz' ${POSTGRES_DATABASE} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${POSTGRES_PORT}  ::: "${wikis}" ::: "${wiki_dates}"
+
 ################################
 ####    user warnings       ####
 ################################
@@ -251,6 +269,10 @@ if [[ $? != 0 ]]; then
 fi
 
 cd ../..
+
+echo 'Computing the user warnings metrics and uploading them on the database'
+
+parallel -j+0 --link --progress python utils/metrics_uploader/user_warnings_metrics.py 'output_total_user_warning_merged/{1}_{2}_refactored_wikibreaks_dataset.json.gz' ${POSTGRES_DATABASE} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${POSTGRES_PORT}  ::: "${languages_codes}" ::: "${wiki_dates}"
 
 echo 'Clear unwanted folders'
 
