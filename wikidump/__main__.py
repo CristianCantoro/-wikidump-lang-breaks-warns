@@ -14,6 +14,7 @@ from typing import IO, Optional, Union
 
 from . import processors, utils
 
+
 def open_xml_file(path: Union[str, IO]):
     """Open an xml file, decompressing it if necessary."""
     f = mw.xml_dump.functions.open_file(
@@ -79,6 +80,12 @@ def get_args():
         help='Output compression format.',
     )
     parser.add_argument(
+        '-p', '--use-parallel',
+        required=False,
+        action='store_true',
+        help='Use built-in parallelization.',
+    )
+    parser.add_argument(
         '--dry-run', '-n',
         action='store_true',
         help="Don't write any file",
@@ -139,9 +146,18 @@ def main(args, input_file_path: str):
 
     utils.log("Done Analyzing {}.".format(input_file_path))
 
+
 if __name__ == '__main__':
     args = get_args()
+
     # n_cores 
     num_core = multiprocessing.cpu_count()
-    # parallel
-    Parallel(n_jobs=num_core)(delayed(main)(args, path) for path in args.files)
+
+    if args.use_parallel:
+        # parallel
+        Parallel(n_jobs=num_core)(delayed(main)(args, path) for path in args.files)
+    else:
+        for path in args.files:
+            main(args, path)
+
+    exit(0)
